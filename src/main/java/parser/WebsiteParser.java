@@ -22,6 +22,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.HttpEntity;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.Versioned;
 
 public class WebsiteParser extends Thread {
     private String baseUrl;

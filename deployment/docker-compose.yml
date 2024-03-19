@@ -6,13 +6,17 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=mq_dev
       - RABBITMQ_DEFAULT_PASS=dev_password
-      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit disk_free_limit 2147483648
+      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit disk_free_limit 2147483648 #for rabbit not to crash mem 2 Gbit
     volumes:
       - ./rabbitmq:/var/lib/rabbitmq
+      - ./init/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./init/definitions.json:/etc/rabbitmq/definitions.json:ro
     ports:
-      - 15672:15672
+      - "5673:5672"
+      - "15672:15672"
     networks:
       - mynetwork
+
   website-parser:
     depends_on:
       - rabbitmq
@@ -20,3 +24,10 @@ services:
     build: .
     networks:
       - mynetwork
+
+
+
+networks:
+  my_network:
+    name: my_network
+    driver: custom-driver-1

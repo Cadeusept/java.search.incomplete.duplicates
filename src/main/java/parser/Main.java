@@ -16,7 +16,7 @@ public class Main {
 
         Runnable runRMQ = () -> {
             try {
-                WebsiteParser.runProducer(2, "https://crimea.mk.ru");
+                WebsiteParser.runProducer(1, "https://crimea.mk.ru");
             } catch (IOException | TimeoutException e) {
                 e.printStackTrace();
             }
