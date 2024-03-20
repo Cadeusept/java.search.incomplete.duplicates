@@ -45,8 +45,8 @@ public class WebsiteParser extends Thread {
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost("localhost");
         factory.setPort(5673);
-        factory.setUsername("mq_dev");
-        factory.setPassword("dev_password");
+        factory.setUsername("rmq_dev");
+        factory.setPassword("password");
         Connection connection = factory.newConnection();
         Channel channel = connection.createChannel();
         WebsiteParser parser = new WebsiteParser(depth, inputBaseUrl, channel);
