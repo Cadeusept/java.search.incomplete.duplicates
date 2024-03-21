@@ -10,7 +10,7 @@ WORKDIR /workspace/app
 COPY ../pom.xml .
 COPY ../src src
 
-RUN mvn package
+RUN mvn clean install exec:java -Dexec.mainClass="org.cadeusept.parser.Main" # package
 #RUN mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)
 
 #FROM openjdk:latest

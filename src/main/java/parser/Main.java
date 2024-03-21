@@ -9,21 +9,35 @@ import java.util.concurrent.TimeoutException;
 import jobExecutor.JobExecutor;
 
 public class Main {
+    public static final String BasePath = "https://crimea.mk.ru";
     public static void main(String[] args) throws ExecutionException, InterruptedException  {
         System.out.println("Setting up environment");
         JobExecutor threadPool = new JobExecutor(2);
         Queue<Runnable> tasks = new ConcurrentLinkedQueue<Runnable>();
 
-        Runnable runRMQ = () -> {
+        Runnable runLinkCatcher = () -> {
             try {
-                WebsiteParser.runProducer(1, "https://crimea.mk.ru");
+                WebsiteParser.runLinkCatcher(1, BasePath);
             } catch (IOException | TimeoutException e) {
                 e.printStackTrace();
             }
         };
 
-        tasks.add(runRMQ);
-        tasks.add(runRMQ);
+        //tasks.add(runLinkCatcher);
+        tasks.add(runLinkCatcher);
+
+        threadPool.executeTasks(tasks);
+
+        Runnable runHtmlParser = () -> {
+            try {
+                WebsiteParser.runParser(1, BasePath);
+            } catch (IOException | TimeoutException e) {
+                e.printStackTrace();
+            }
+        };
+
+        //tasks.add(runRMQ);
+        tasks.add(runHtmlParser);
 
         threadPool.executeTasks(tasks);
 
