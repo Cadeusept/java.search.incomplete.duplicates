@@ -1,6 +1,7 @@
 package parser;
 
 import com.rabbitmq.client.*;
+import entities.Link;
 import entities.NewsHeadline;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
@@ -25,44 +26,29 @@ import org.apache.http.HttpEntity;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class WebsiteParser extends Thread {
-    private String baseUrl;
-    private int depth_count = 1;
-    public Deque<String> urlVec = null;
-    public Deque<String> resultUrlVec = null;
-    public Scanner cin = new Scanner(System.in);
-    public PrintStream pout = new PrintStream(System.out);
-    private CloseableHttpClient client = null;
     private static final String DATA_QUEUE_NAME = "data_queue";
     private static final String URL_QUEUE_NAME = "url_queue";
-    private Channel rmqChan = null;
-    private final int retryCount = 3;
-    private final int metadataTimeout = 30 * 1000;
-    private final int retryDelay = 5 * 1000;
-    private HashMap<String, Document> docVec;
-    private final ObjectMapper mapper = new ObjectMapper();
+    private static final String RMQ_HOST_NAME = "localhost";
+    private static final int RMQ_PORT = 5673;
+    private static final String RMQ_USERNAME = "rmq_dev";
+    private static final String RMQ_PASSWORD = "password";
 
     private static class linkCatcher {
         private String baseUrl;
         private int depth_count = 1;
-        public Deque<String> urlVec = null;
-        public Deque<String> resultUrlVec = null;
+        public Deque<Link> urlVec = null;
+        public Deque<Link> resultUrlVec = null;
         private Channel rmqChan = null;
-        private static final String URL_QUEUE_NAME = "url_queue";
-        private CloseableHttpClient client = null;
         public Scanner cin = new Scanner(System.in);
         public PrintStream pout = new PrintStream(System.out);
 
         public linkCatcher(int depth, String inputBaseUrl, Channel rmqChannel) throws IOException, TimeoutException {
-            urlVec = new ArrayDeque<String>();
-            resultUrlVec = new ArrayDeque<String>();
-            depth_count = depth;
+            urlVec = new ArrayDeque<Link>();
+            resultUrlVec = new ArrayDeque<Link>();
             baseUrl = inputBaseUrl;
-            urlVec.add(baseUrl);
+            urlVec.add(new Link(baseUrl, 0));
+            depth_count = depth;
             rmqChan = rmqChannel;
-
-            client = HttpClients.custom()
-                    .setDefaultRequestConfig(RequestConfig.custom().setCookieSpec(CookieSpecs.STANDARD).build())
-                    .setDefaultCookieStore(new BasicCookieStore()).build();
         }
 
         public void Start() throws IOException {
@@ -76,15 +62,17 @@ public class WebsiteParser extends Thread {
         }
 
         private void fork() throws IOException {
-            String cur;
+            Link cur;
 
             while ((cur = urlVec.pollFirst()) != null) {
                 parseUrlAndPublishPage(cur);
             }
         }
 
-        private void parseUrlAndPublishPage(String url) throws IOException {
-            Document doc = Jsoup.connect(url).get();
+        private void parseUrlAndPublishPage(Link url) throws IOException {
+            int level = url.GetLevel() + 1;
+
+            Document doc = Jsoup.connect(url.GetUrl()).get();
             Elements links = doc.select("a[href]");
 
             for (Element link : links) {
@@ -101,22 +89,23 @@ public class WebsiteParser extends Thread {
                 }
 
                 rmqChan.basicPublish("", URL_QUEUE_NAME, null, link.attr("abs:href").getBytes(StandardCharsets.UTF_8));
-                // parsePage(link.attr("abs:href"));
 
-                // resultUrlVec.add(link.attr("abs:href"));
+                resultUrlVec.add(new Link(link.attr("abs:href"), level));
+                if (level <= this.depth_count) {
+                    urlVec.add(new Link(link.attr("abs:href"), level));
+                }
             }
         }
     }
 
-    public static void runLinkCatcher(int depth, String inputBaseUrl) throws IOException, TimeoutException {
+    public void runLinkCatcher(int depth, String inputBaseUrl) throws IOException, TimeoutException {
         ConnectionFactory factory = new ConnectionFactory();
-        factory.setHost("localhost");
-        factory.setPort(5673);
-        factory.setUsername("rmq_dev");
-        factory.setPassword("password");
+        factory.setHost(RMQ_HOST_NAME);
+        factory.setPort(RMQ_PORT);
+        factory.setUsername(RMQ_USERNAME);
+        factory.setPassword(RMQ_PASSWORD);
         Connection connection = factory.newConnection();
         Channel channel = connection.createChannel();
-        WebsiteParser parser = new WebsiteParser(depth, inputBaseUrl, channel);
 
         channel.queueDeclare(DATA_QUEUE_NAME, true, false, false, null);
         channel.basicQos(1);
@@ -130,41 +119,25 @@ public class WebsiteParser extends Thread {
     }
 
     private static class htmlParser {
-        private String baseUrl;
         public Scanner cin = new Scanner(System.in);
         public PrintStream pout = new PrintStream(System.out);
         private CloseableHttpClient client = null;
-        private static final String DATA_QUEUE_NAME = "data_queue";
         private Channel rmqChan = null;
         private final int retryCount = 3;
         private final int metadataTimeout = 30 * 1000;
         private final int retryDelay = 5 * 1000;
         private HashMap<String, Document> docVec;
-        private final ObjectMapper mapper = new ObjectMapper();
 
-        public htmlParser(String inputBaseUrl, Channel rmqChannel) throws IOException, TimeoutException {
-            baseUrl = inputBaseUrl;
+        public htmlParser(HashMap<String, Document> docVec, Channel rmqChannel) throws IOException, TimeoutException {
             rmqChan = rmqChannel;
+            this.docVec = docVec;
 
             client = HttpClients.custom()
                     .setDefaultRequestConfig(RequestConfig.custom().setCookieSpec(CookieSpecs.STANDARD).build())
                     .setDefaultCookieStore(new BasicCookieStore()).build();
         }
 
-        public void Start() throws IOException {
-            fork();
-            pout.println(Thread.currentThread() + "start work");
-        }
-
-        private void fork() throws IOException {
-            String cur;
-
-            while ((cur = rmqChan.pollFirst()) != null) { // TODO
-                parsePage(cur);
-            }
-        }
-
-        private void parsePage(String url) throws IOException {
+        public void parsePage(String url) throws IOException {
             int code = 0;
             boolean bStop = false;
             Document doc = null;
@@ -186,6 +159,11 @@ public class WebsiteParser extends Thread {
                     code = response.getStatusLine().getStatusCode();
                     if (code == 404) {
                         pout.println("error get url " + url + " code " + code);
+                        try {
+                            response.close();
+                        } catch (IOException e) {
+                            pout.println(e);
+                        }
                         // log.warn("error get url " + url + " code " + code);
                         bStop = true;//break;
                     } else if (code == 200) {
@@ -195,6 +173,11 @@ public class WebsiteParser extends Thread {
                                 doc = Jsoup.parse(entity.getContent(), "UTF-8", url);
                                 docVec.put(url, doc);
                                 pout.println(docVec.size() + "docs downloaded");
+                                try {
+                                    response.close();
+                                } catch (IOException e) {
+                                    pout.println(e);
+                                }
                                 break;
                             } catch (IOException e) {
                                 // log.error(e);
@@ -221,22 +204,80 @@ public class WebsiteParser extends Thread {
                         }
                     }
                 } catch (IOException e) {
-                    // log.error(e);
+                    pout.println(e);
                 }
                 if (response != null) {
                     try {
                         response.close();
                     } catch (IOException e) {
-                        // log.error(e);
+                        pout.println(e);
                     }
                 }
             }
         }
+    }
 
-        private void parseProduceNews() {
+    public void RunHtmlParser(HashMap<String, Document> docVec) throws IOException, TimeoutException, InterruptedException {
+        ConnectionFactory factory = new ConnectionFactory();
+        factory.setHost(RMQ_HOST_NAME);
+        factory.setPort(RMQ_PORT);
+        factory.setUsername(RMQ_USERNAME);
+        factory.setPassword(RMQ_PASSWORD);
+        Connection connection = factory.newConnection();
+        Channel channel = connection.createChannel();
+
+        channel.queueDeclare(DATA_QUEUE_NAME, true, false, false, null);
+        channel.basicQos(1);
+
+        // parser.Start();
+        htmlParser cons = new htmlParser(docVec, channel);
+
+        channel.basicConsume(URL_QUEUE_NAME, false, "javaConsumerTag", new DefaultConsumer(channel) {
+            @Override
+            public void handleDelivery(String consumerTag,
+                                       Envelope envelope,
+                                       AMQP.BasicProperties properties,
+                                       byte[] body)
+                    throws IOException {
+                long deliveryTag = envelope.getDeliveryTag();
+                // (process the message components here ...)
+                String message = new String(body, StandardCharsets.UTF_8);
+                System.out.println(" [x] Received '" + message + "'" + "  " + Thread.currentThread());
+                cons.parsePage(message);
+                channel.basicAck(deliveryTag, false);
+            }
+        });
+
+        AMQP.Queue.DeclareOk response = channel.queueDeclarePassive(URL_QUEUE_NAME);
+
+        for (;;) {
+            if (response.getMessageCount() != 0) {
+                Thread.sleep(5000);
+            } else {
+                break;
+            }
+        }
+
+        channel.basicCancel("javaConsumerTag");
+        channel.close();
+        connection.close();
+    }
+
+    private static class elkProducer {
+        private HashMap<String, Document> docVec = null;
+        private Channel rmqChan = null;
+        public PrintStream pout = new PrintStream(System.out);
+        private final ObjectMapper mapper = new ObjectMapper();
+
+        public elkProducer(HashMap<String, Document> docVec, Channel channel) {
+            this.docVec = docVec;
+            rmqChan = channel;
+        }
+
+        public void ParsePublishNews() {
             for (HashMap.Entry<String, Document> entry : docVec.entrySet()) {
                 parsePrintNews(entry.getKey(), entry.getValue());   // dev
-                // parseProduceToElk(entry.getKey(), entry.getValue()); TODO
+                // parseProduceToElk(entry.getKey(), entry.getValue()); // TODO prod
             }
         }
 
@@ -255,7 +296,7 @@ public class WebsiteParser extends Thread {
                 pout.println("URL:");
                 pout.println(url);
             } catch (Exception e) {
-                // log.error(e);
+                pout.println(e);
             }
             //}
         }
@@ -277,43 +318,24 @@ public class WebsiteParser extends Thread {
             //}
         }
     }
-
-    public static void runParser(int depth, String inputBaseUrl) throws IOException, TimeoutException {
+    public void RunElkProducer(HashMap<String, Document> docVec) throws IOException, TimeoutException {
         ConnectionFactory factory = new ConnectionFactory();
-        factory.setHost("localhost");
-        factory.setPort(5673);
-        factory.setUsername("rmq_dev");
-        factory.setPassword("password");
+        factory.setHost(RMQ_HOST_NAME);
+        factory.setPort(RMQ_PORT);
+        factory.setUsername(RMQ_USERNAME);
+        factory.setPassword(RMQ_PASSWORD);
         Connection connection = factory.newConnection();
         Channel channel = connection.createChannel();
-        WebsiteParser parser = new WebsiteParser(depth, inputBaseUrl, channel);
 
         channel.queueDeclare(DATA_QUEUE_NAME, true, false, false, null);
-        channel.queueDeclare(URL_QUEUE_NAME, true, false, false, null);
         channel.basicQos(1);
 
         // parser.Start();
-        htmlParser cons = new htmlParser(inputBaseUrl, channel);
-        cons.Start();
+        elkProducer prod = new elkProducer(docVec, channel);
+        // prod.Start();
+        prod.ParsePublishNews();
 
         channel.close();
         connection.close();
     }
-
-    public WebsiteParser(int depth, String inputBaseUrl, Channel rmqChannel) throws IOException, TimeoutException {
-        urlVec = new ArrayDeque<String>();
-        resultUrlVec = new ArrayDeque<String>();
-        docVec = new HashMap<String, Document>();
-        depth_count = depth;
-        baseUrl = inputBaseUrl;
-        urlVec.add(baseUrl);
-        rmqChan = rmqChannel;
-
-//        CookieStore cookieStore = new BasicCookieStore();
-        client = HttpClients.custom()
-                .setDefaultRequestConfig(RequestConfig.custom().setCookieSpec(CookieSpecs.STANDARD).build())
-                .setDefaultCookieStore(new BasicCookieStore()).build();
-    }
-
-    //class="news-speeches_wrap items_data"
 }

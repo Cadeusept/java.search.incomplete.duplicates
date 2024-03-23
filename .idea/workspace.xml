@@ -4,10 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="eb6331d8-d743-4170-b4a4-2ba7a2547da3" name="Changes" comment="feat: added deployment">
+    <list default="true" id="eb6331d8-d743-4170-b4a4-2ba7a2547da3" name="Changes" comment="feat: added new queue">
+      <change afterPath="$PROJECT_DIR$/src/main/java/entities/Link.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/deployment/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/deployment/Dockerfile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/deployment/init/definitions.json" beforeDir="false" afterPath="$PROJECT_DIR$/deployment/init/definitions.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/parser/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/parser/Main.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/parser/WebsiteParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/parser/WebsiteParser.java" afterDir="false" />
@@ -41,12 +42,19 @@
   "keyToString": {
     "Application.Main.executor": "Debug",
     "Maven. [clear].executor": "Run",
+    "Maven. [compile,exec:java...].executor": "Run",
+    "Maven.website-parser [clean,compile].executor": "Run",
+    "Maven.website-parser [clean,install].executor": "Run",
     "Maven.website-parser [clean,main].executor": "Run",
+    "Maven.website-parser [clean,package].executor": "Run",
     "Maven.website-parser [clean,test].executor": "Run",
     "Maven.website-parser [clean,validate,compile...].executor": "Run",
     "Maven.website-parser [clean].executor": "Run",
     "Maven.website-parser [clear].executor": "Run",
+    "Maven.website-parser [compile,exec:java...].executor": "Run",
+    "Maven.website-parser [compile,exec:java].executor": "Run",
     "Maven.website-parser [compile].executor": "Run",
+    "Maven.website-parser [install].executor": "Run",
     "Maven.website-parser [package].executor": "Run",
     "Maven.website-parser.executor": "Run",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
@@ -127,13 +135,48 @@
       <option name="project" value="LOCAL" />
       <updated>1710964632895</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="feat: added new queue">
+      <option name="closed" value="true" />
+      <created>1711031218082</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1711031218082</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="initial commit" />
     <MESSAGE value="feat: added website parser and deployment files" />
     <MESSAGE value="feat: added deployment" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: added deployment" />
+    <MESSAGE value="feat: added new queue" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: added new queue" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/parser/WebsiteParser.java</url>
+          <line>114</line>
+          <option name="timeStamp" value="4" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/parser/Main.java</url>
+          <line>24</line>
+          <option name="timeStamp" value="6" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/parser/Main.java</url>
+          <line>64</line>
+          <option name="timeStamp" value="8" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/parser/WebsiteParser.java</url>
+          <line>313</line>
+          <option name="timeStamp" value="15" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>
