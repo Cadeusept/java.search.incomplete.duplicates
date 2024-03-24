@@ -15,6 +15,8 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.http.impl.client.BasicCookieStore;
@@ -77,13 +79,13 @@ public class WebsiteParser extends Thread {
 
             for (Element link : links) {
                 if (
-                        !link.attr("abs:href").startsWith(baseUrl + "/politics/") &&
-                                !link.attr("abs:href").startsWith(baseUrl + "/incident/") &&
-                                !link.attr("abs:href").startsWith(baseUrl + "/culture/") &&
-                                !link.attr("abs:href").startsWith(baseUrl + "/social/") &&
-                                !link.attr("abs:href").startsWith(baseUrl + "/economics/") &&
-                                !link.attr("abs:href").startsWith(baseUrl + "/science/") &&
-                                !link.attr("abs:href").startsWith(baseUrl + "/sport/")
+                        !link.attr("abs:href").startsWith(baseUrl + "/politics/2024/") &&
+                                !link.attr("abs:href").startsWith(baseUrl + "/incident/2024/") &&
+                                !link.attr("abs:href").startsWith(baseUrl + "/culture/2024/") &&
+                                !link.attr("abs:href").startsWith(baseUrl + "/social/2024/") &&
+                                !link.attr("abs:href").startsWith(baseUrl + "/economics/2024/") &&
+                                !link.attr("abs:href").startsWith(baseUrl + "/science/2024/") &&
+                                !link.attr("abs:href").startsWith(baseUrl + "/sport/2024/")
                 ) {
                     continue;
                 }
@@ -126,9 +128,9 @@ public class WebsiteParser extends Thread {
         private final int retryCount = 3;
         private final int metadataTimeout = 30 * 1000;
         private final int retryDelay = 5 * 1000;
-        private HashMap<String, Document> docVec;
+        private static volatile  Map<String, Document> docVec;
 
-        public htmlParser(HashMap<String, Document> docVec, Channel rmqChannel) throws IOException, TimeoutException {
+        public htmlParser(Map<String, Document> docVec, Channel rmqChannel) throws IOException, TimeoutException {
             rmqChan = rmqChannel;
             this.docVec = docVec;
 
@@ -217,7 +219,9 @@ public class WebsiteParser extends Thread {
         }
     }
 
-    public void RunHtmlParser(HashMap<String, Document> docVec) throws IOException, TimeoutException, InterruptedException {
+    public void RunHtmlParserAndElkProducer() throws IOException, TimeoutException, InterruptedException {
+        Map<String, Document> docVec = java.util.Collections.synchronizedMap(new ConcurrentHashMap<String, Document>());
+
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost(RMQ_HOST_NAME);
         factory.setPort(RMQ_PORT);
@@ -229,7 +233,6 @@ public class WebsiteParser extends Thread {
         channel.queueDeclare(DATA_QUEUE_NAME, true, false, false, null);
         channel.basicQos(1);
 
-        // parser.Start();
         htmlParser cons = new htmlParser(docVec, channel);
 
         channel.basicConsume(URL_QUEUE_NAME, false, "javaConsumerTag", new DefaultConsumer(channel) {
@@ -240,7 +243,6 @@ public class WebsiteParser extends Thread {
                                        byte[] body)
                     throws IOException {
                 long deliveryTag = envelope.getDeliveryTag();
-                // (process the message components here ...)
                 String message = new String(body, StandardCharsets.UTF_8);
                 System.out.println(" [x] Received '" + message + "'" + "  " + Thread.currentThread());
                 cons.parsePage(message);
@@ -248,36 +250,44 @@ public class WebsiteParser extends Thread {
             }
         });
 
-        AMQP.Queue.DeclareOk response = channel.queueDeclarePassive(URL_QUEUE_NAME);
+        int responceWaitCount = 0;
 
-        for (;;) {
+        while (responceWaitCount<5) {
+            AMQP.Queue.DeclareOk response = channel.queueDeclarePassive(URL_QUEUE_NAME);
             if (response.getMessageCount() != 0) {
-                Thread.sleep(5000);
+                responceWaitCount = 0;
+                Thread.sleep(500);
             } else {
-                break;
+                Thread.sleep(5000);
+                responceWaitCount++;
             }
         }
 
         channel.basicCancel("javaConsumerTag");
         channel.close();
         connection.close();
+
+        RunElkProducer(docVec);
     }
 
     private static class elkProducer {
-        private HashMap<String, Document> docVec = null;
         private Channel rmqChan = null;
         public PrintStream pout = new PrintStream(System.out);
         private final ObjectMapper mapper = new ObjectMapper();
 
-        public elkProducer(HashMap<String, Document> docVec, Channel channel) {
-            this.docVec = docVec;
+        public elkProducer(Channel channel) {
             rmqChan = channel;
         }
 
-        public void ParsePublishNews() {
-            for (HashMap.Entry<String, Document> entry : docVec.entrySet()) {
-                parsePrintNews(entry.getKey(), entry.getValue());   // dev
-                // parseProduceToElk(entry.getKey(), entry.getValue()); // TODO prod
+        public void ParsePublishNews(Map<String, Document> docVec) throws InterruptedException {
+            if (docVec.isEmpty()) {
+                pout.println("empty map");
+            } else {
+                for (Map.Entry<String, Document> entry : docVec.entrySet()) {
+                    parsePrintNews(entry.getKey(), entry.getValue());   // dev
+                    // parseProduceToElk(entry.getKey(), entry.getValue()); // TODO prod
+                }
+                Thread.sleep(500);
             }
         }
 
@@ -286,13 +296,13 @@ public class WebsiteParser extends Thread {
 //        for (Element element : spans) {
             try {
                 pout.println("Header:");
-                pout.println(doc.select("h1 [class=article__title]").getFirst().text());
+                pout.println(doc.select("div [class=article__title]").getFirst().text());
                 pout.println("Body:");
                 pout.println(doc.select("div [class=article__body]").getFirst().text());
                 pout.println("Author:");
-                pout.println(doc.select("span [class=article__author-text-link]").getFirst().text());
+                pout.println(doc.select("li [class=article__author-text-link]").getFirst().text());
                 pout.println("Date:");
-                pout.println(doc.select("time [class=meta__text]").getFirst().text());
+                pout.println(doc.select("time").getFirst().attr("datetime"));
                 pout.println("URL:");
                 pout.println(url);
             } catch (Exception e) {
@@ -303,22 +313,19 @@ public class WebsiteParser extends Thread {
 
         public void parseProduceToElk(String url, Document doc) {
             NewsHeadline newsHeadline = new NewsHeadline();
-            //Elements spans = doc.select("div [class=article__text__overview]");
-            //for (Element element : spans) {
             try {
-                newsHeadline.SetHeader(doc.select("h1 [class=article__title]").getFirst().text());
+                newsHeadline.SetHeader(doc.select("div [class=article__title]").getFirst().text());
                 newsHeadline.SetBody(doc.select("div [class=article__body]").getFirst().text());
-                newsHeadline.SetAuthor(doc.select("span [class=article__author-text-link]").getFirst().text());
-                newsHeadline.SetDate(doc.select("time [class=meta__text]").getFirst().text());
+                newsHeadline.SetAuthor(doc.select("li [class=article__author-text-link]").getFirst().text());
+                newsHeadline.SetDate(doc.select("time").getFirst().attr("datetime"));
                 newsHeadline.SetURL(url);
                 rmqChan.basicPublish("", DATA_QUEUE_NAME, null, mapper.writeValueAsBytes(newsHeadline));
             } catch (Exception e) {
-                // log.error(e);
+                pout.println(e);
             }
-            //}
         }
     }
-    public void RunElkProducer(HashMap<String, Document> docVec) throws IOException, TimeoutException {
+    public void RunElkProducer(Map<String, Document> docVec) throws IOException, TimeoutException, InterruptedException {
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost(RMQ_HOST_NAME);
         factory.setPort(RMQ_PORT);
@@ -330,10 +337,10 @@ public class WebsiteParser extends Thread {
         channel.queueDeclare(DATA_QUEUE_NAME, true, false, false, null);
         channel.basicQos(1);
 
-        // parser.Start();
-        elkProducer prod = new elkProducer(docVec, channel);
-        // prod.Start();
-        prod.ParsePublishNews();
+
+        elkProducer prod = new elkProducer(channel);
+
+        prod.ParsePublishNews(docVec);
 
         channel.close();
         connection.close();

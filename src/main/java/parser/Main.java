@@ -1,12 +1,12 @@
 package parser;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
-import org.apache.http.client.CookieStore;
 
 import jobExecutor.JobExecutor;
 import org.jsoup.nodes.Document;
@@ -16,7 +16,7 @@ public class Main {
     public static final int Depth = 1;
     public static void main(String[] args) throws ExecutionException, InterruptedException, IOException, TimeoutException {
         System.out.println("Setting up environment");
-        JobExecutor threadPool = new JobExecutor(2);
+        JobExecutor threadPool = new JobExecutor(5);
         Queue<Runnable> tasks = new ConcurrentLinkedQueue<Runnable>();
         WebsiteParser parserEntity = new WebsiteParser();
 
@@ -28,16 +28,12 @@ public class Main {
             }
         };
 
+        tasks.add(runLinkCatcher);
         //tasks.add(runLinkCatcher);
-        //tasks.add(runLinkCatcher);
-
-        threadPool.executeTasks(tasks);
-
-        HashMap<String, Document> docVec = new HashMap<String, Document>();
 
         Runnable runHtmlParser = () -> {
             try {
-                parserEntity.RunHtmlParser(docVec);
+                parserEntity.RunHtmlParserAndElkProducer();
             } catch (IOException | TimeoutException e) {
                 e.printStackTrace();
             } catch (InterruptedException e) {
@@ -45,20 +41,11 @@ public class Main {
             }
         };
 
-        //tasks.add(runRMQ);
+        tasks.add(runHtmlParser);
+        tasks.add(runHtmlParser);
         tasks.add(runHtmlParser);
 
         threadPool.executeTasks(tasks);
-
-        Runnable runElkProducer = () -> {
-            try {
-                parserEntity.RunElkProducer(docVec);
-            } catch (IOException | TimeoutException e) {
-                e.printStackTrace();
-            }
-        };
-
-        tasks.add(runElkProducer);
 
         threadPool.shutdown();
 
