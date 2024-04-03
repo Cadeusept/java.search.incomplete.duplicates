@@ -1,11 +1,26 @@
 package parser;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.Refresh;
+import co.elastic.clients.elasticsearch.core.IndexRequest;
+import co.elastic.clients.json.jackson.JacksonJsonpMapper;
+import co.elastic.clients.transport.ElasticsearchTransport;
+import co.elastic.clients.transport.endpoints.BooleanResponse;
+import co.elastic.clients.transport.rest_client.RestClientTransport;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.rabbitmq.client.*;
 import entities.Link;
 import entities.NewsHeadline;
+import org.apache.http.Header;
+import org.apache.http.HttpHost;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicHeader;
+import org.elasticsearch.client.RestClient;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -24,8 +39,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.HttpEntity;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class WebsiteParser extends Thread {
     private static final String DATA_QUEUE_NAME = "data_queue";
@@ -345,4 +358,145 @@ public class WebsiteParser extends Thread {
         channel.close();
         connection.close();
     }
+
+    private static class elcConsumer {
+        public Scanner cin = new Scanner(System.in);
+        public PrintStream pout = new PrintStream(System.out);
+        private Channel rmqChan = null;
+        private String serverUrl;
+        private String apiKey;
+        private final ObjectMapper mapper = new ObjectMapper();
+        private final String NEWS_HEADLINES = "news_headlines";
+        private ElasticsearchClient elcClient;
+
+        public elcConsumer(Map<String, Document> docVec, Channel rmqChannel) throws IOException {
+            rmqChan = rmqChannel;
+            ElasticClient ec = new ElasticClient("SERVER_URL", "API_KEY"); //todo
+            elcClient = ec.elasticRestClient();
+        }
+
+        public class ElasticClient {
+
+            private String serverUrl;
+            private String apiKey;
+            
+            public ElasticClient(String serverUrl, String apiKey) throws IOException {
+                this.serverUrl=serverUrl;
+                this.apiKey=apiKey;
+            }
+
+            public ElasticsearchClient elasticRestClient() throws IOException {
+
+                // Create the low-level client
+                RestClient restClient = RestClient
+                        .builder(HttpHost.create(serverUrl))
+                        .setDefaultHeaders(new Header[]{
+                                new BasicHeader("Authorization", "ApiKey " + apiKey)
+                        })
+                        .build();
+
+                // The transport layer of the Elasticsearch client requires a json object mapper to
+                // define how to serialize/deserialize java objects. The mapper can be customized by adding
+                // modules, for example since the Article and Comment object both have Instant fields, the
+                // JavaTimeModule is added to provide support for java 8 Time classes, which the mapper itself does
+                // not support.
+                ObjectMapper mapper = JsonMapper.builder()
+                        .addModule(new JavaTimeModule())
+                        .build();
+
+                // Create the transport with the Jackson mapper
+                ElasticsearchTransport transport = new RestClientTransport(
+                        restClient, new JacksonJsonpMapper(mapper));
+
+                // Create the API client
+                ElasticsearchClient esClient = new ElasticsearchClient(transport);
+
+                // Creating the indexes
+                createIndexWithDateMapping(esClient, NEWS_HEADLINES);
+
+                return esClient;
+            }
+
+            private void createIndexWithDateMapping(ElasticsearchClient esClient, String index) throws IOException {
+                BooleanResponse indexRes = esClient.indices().exists(ex -> ex.index(index));
+                if (!indexRes.value()) {
+                    esClient.indices().create(c -> c
+                            .index(index)
+                            .mappings(m -> m
+                                    .properties("createdAt", p -> p
+                                            .date(d -> d.format("strict_date_optional_time")))
+                                    .properties("updatedAt", p -> p
+                                            .date(d -> d.format("strict_date_optional_time")))));
+
+                }
+            }
+        }
+
+        public void consume(String msg) throws IOException {
+            NewsHeadline nh = new NewsHeadline();
+
+            JsonNode newsHeadlineJsonNode = mapper.readTree(msg);
+            nh.SetAuthor(newsHeadlineJsonNode.get("author").asText());
+            nh.SetBody(newsHeadlineJsonNode.get("body").asText());
+            nh.SetURL(newsHeadlineJsonNode.get("url").asText());
+            nh.SetHeader(newsHeadlineJsonNode.get("header").asText());
+            nh.SetDate(newsHeadlineJsonNode.get("date").asText());
+
+            IndexRequest<NewsHeadline> indexReq = IndexRequest.of((id -> id
+                    .index(NEWS_HEADLINES)
+                    .refresh(Refresh.WaitFor)
+                    .document(nh)));
+
+            elcClient.index(indexReq);
+        }
+    }
+
+    public void RunElcConsumer() throws IOException, TimeoutException, InterruptedException {
+        Map<String, Document> docVec = java.util.Collections.synchronizedMap(new ConcurrentHashMap<String, Document>());
+
+        ConnectionFactory factory = new ConnectionFactory();
+        factory.setHost(RMQ_HOST_NAME);
+        factory.setPort(RMQ_PORT);
+        factory.setUsername(RMQ_USERNAME);
+        factory.setPassword(RMQ_PASSWORD);
+        Connection connection = factory.newConnection();
+        Channel channel = connection.createChannel();
+
+        elcConsumer cons = new elcConsumer(docVec, channel);
+
+        channel.basicConsume(DATA_QUEUE_NAME, false, "javaElcConsumerTag", new DefaultConsumer(channel) {
+            @Override
+            public void handleDelivery(String consumerTag,
+                                       Envelope envelope,
+                                       AMQP.BasicProperties properties,
+                                       byte[] body)
+                    throws IOException {
+                long deliveryTag = envelope.getDeliveryTag();
+                String message = new String(body, StandardCharsets.UTF_8);
+                System.out.println(" [x] Received '" + message + "'  " + Thread.currentThread());
+                cons.consume(message);
+                channel.basicAck(deliveryTag, false);
+            }
+        });
+
+        int responceWaitCount = 0;
+
+        while (responceWaitCount<5) {
+            AMQP.Queue.DeclareOk response = channel.queueDeclarePassive(DATA_QUEUE_NAME);
+            if (response.getMessageCount() != 0) {
+                responceWaitCount = 0;
+                Thread.sleep(500);
+            } else {
+                Thread.sleep(5000);
+                responceWaitCount++;
+            }
+        }
+
+        channel.basicCancel("javaElcConsumerTag");
+        channel.close();
+        connection.close();
+
+        RunElkProducer(docVec);
+    }
+
 }
