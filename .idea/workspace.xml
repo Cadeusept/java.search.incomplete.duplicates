@@ -4,10 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="eb6331d8-d743-4170-b4a4-2ba7a2547da3" name="Changes" comment="feat: added elasticsearch &amp; kibana deployment">
+    <list default="true" id="eb6331d8-d743-4170-b4a4-2ba7a2547da3" name="Changes" comment="feat: added elasticsearch client">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/deployment/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/deployment/docker-compose.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/parser/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/parser/Main.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/parser/WebsiteParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/parser/WebsiteParser.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -164,7 +165,15 @@
       <option name="project" value="LOCAL" />
       <updated>1711360698338</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="feat: added elasticsearch client">
+      <option name="closed" value="true" />
+      <created>1712163235495</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1712163235495</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -174,19 +183,20 @@
     <MESSAGE value="feat: added new queue" />
     <MESSAGE value="feat: added parsing &amp; elk producing template" />
     <MESSAGE value="feat: added elasticsearch &amp; kibana deployment" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: added elasticsearch &amp; kibana deployment" />
+    <MESSAGE value="feat: added elasticsearch client" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: added elasticsearch client" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/main/java/parser/Main.java</url>
-          <line>51</line>
+          <line>60</line>
           <option name="timeStamp" value="8" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/main/java/parser/WebsiteParser.java</url>
-          <line>334</line>
+          <line>337</line>
           <option name="timeStamp" value="15" />
         </line-breakpoint>
       </breakpoints>

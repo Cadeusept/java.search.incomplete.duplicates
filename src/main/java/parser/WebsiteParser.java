@@ -7,6 +7,8 @@ import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.endpoints.BooleanResponse;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
@@ -232,7 +234,7 @@ public class WebsiteParser extends Thread {
         }
     }
 
-    public void RunHtmlParserAndElkProducer() throws IOException, TimeoutException, InterruptedException {
+    public void RunHtmlParserAndElcProducer() throws IOException, TimeoutException, InterruptedException {
         Map<String, Document> docVec = java.util.Collections.synchronizedMap(new ConcurrentHashMap<String, Document>());
 
         ConnectionFactory factory = new ConnectionFactory();
@@ -297,8 +299,9 @@ public class WebsiteParser extends Thread {
                 pout.println("empty map");
             } else {
                 for (Map.Entry<String, Document> entry : docVec.entrySet()) {
-                    parsePrintNews(entry.getKey(), entry.getValue());   // dev
-                    // parseProduceToElk(entry.getKey(), entry.getValue()); // TODO prod
+                    mapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
+                    // parsePrintNews(entry.getKey(), entry.getValue());   // dev
+                    parseProduceToElk(entry.getKey(), entry.getValue()); // TODO prod
                 }
                 Thread.sleep(500);
             }

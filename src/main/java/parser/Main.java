@@ -1,15 +1,12 @@
 package parser;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
 import jobExecutor.JobExecutor;
-import org.jsoup.nodes.Document;
 
 public class Main {
     public static final String BasePath = "https://crimea.mk.ru";
@@ -33,7 +30,7 @@ public class Main {
 
         Runnable runHtmlParser = () -> {
             try {
-                parserEntity.RunHtmlParserAndElkProducer();
+                parserEntity.RunHtmlParserAndElcProducer();
             } catch (IOException | TimeoutException e) {
                 e.printStackTrace();
             } catch (InterruptedException e) {
@@ -44,6 +41,18 @@ public class Main {
         tasks.add(runHtmlParser);
         tasks.add(runHtmlParser);
         tasks.add(runHtmlParser);
+
+        Runnable runElcConsumer = () -> {
+            try {
+                parserEntity.RunElcConsumer();
+            } catch (IOException | TimeoutException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        };
+
+        tasks.add(runElcConsumer);
 
         threadPool.executeTasks(tasks);
 
