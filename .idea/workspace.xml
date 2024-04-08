@@ -4,12 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="eb6331d8-d743-4170-b4a4-2ba7a2547da3" name="Changes" comment="feat: added elasticsearch client">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+    <list default="true" id="eb6331d8-d743-4170-b4a4-2ba7a2547da3" name="Changes" comment="feat: added elasticsearch consumer">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/deployment/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/deployment/docker-compose.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/parser/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/parser/Main.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/parser/WebsiteParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/parser/WebsiteParser.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -173,7 +171,15 @@
       <option name="project" value="LOCAL" />
       <updated>1712163235495</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="feat: added elasticsearch consumer">
+      <option name="closed" value="true" />
+      <created>1712575701122</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1712575701122</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -184,7 +190,8 @@
     <MESSAGE value="feat: added parsing &amp; elk producing template" />
     <MESSAGE value="feat: added elasticsearch &amp; kibana deployment" />
     <MESSAGE value="feat: added elasticsearch client" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: added elasticsearch client" />
+    <MESSAGE value="feat: added elasticsearch consumer" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: added elasticsearch consumer" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
