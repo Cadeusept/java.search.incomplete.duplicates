@@ -13,7 +13,7 @@ public class Main {
     public static final int Depth = 1;
     public static void main(String[] args) throws ExecutionException, InterruptedException, IOException, TimeoutException {
         System.out.println("Setting up environment");
-        JobExecutor threadPool = new JobExecutor(5);
+        JobExecutor threadPool = new JobExecutor(7);
         Queue<Runnable> tasks = new ConcurrentLinkedQueue<Runnable>();
         WebsiteParser parserEntity = new WebsiteParser();
 
@@ -26,7 +26,6 @@ public class Main {
         };
 
         tasks.add(runLinkCatcher);
-        //tasks.add(runLinkCatcher);
 
         Runnable runHtmlParser = () -> {
             try {
@@ -52,6 +51,8 @@ public class Main {
             }
         };
 
+        tasks.add(runElcConsumer);
+        tasks.add(runElcConsumer);
         tasks.add(runElcConsumer);
 
         threadPool.executeTasks(tasks);

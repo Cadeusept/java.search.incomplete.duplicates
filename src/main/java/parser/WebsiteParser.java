@@ -3,6 +3,7 @@ package parser;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.Refresh;
 import co.elastic.clients.elasticsearch.core.IndexRequest;
+import co.elastic.clients.elasticsearch.core.IndexResponse;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.endpoints.BooleanResponse;
@@ -12,6 +13,7 @@ import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.joda.JodaModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.rabbitmq.client.*;
 import entities.Link;
@@ -23,6 +25,10 @@ import org.apache.http.client.config.RequestConfig;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicHeader;
 import org.elasticsearch.client.RestClient;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -49,6 +55,8 @@ public class WebsiteParser extends Thread {
     private static final int RMQ_PORT = 5673;
     private static final String RMQ_USERNAME = "rmq_dev";
     private static final String RMQ_PASSWORD = "password";
+    private static final Object indexCreationLock = new Object();
+
 
     private static class linkCatcher {
         private String baseUrl;
@@ -235,7 +243,7 @@ public class WebsiteParser extends Thread {
     }
 
     public void RunHtmlParserAndElcProducer() throws IOException, TimeoutException, InterruptedException {
-        Map<String, Document> docVec = java.util.Collections.synchronizedMap(new ConcurrentHashMap<String, Document>());
+        Map<String, Document> docVec = Collections.synchronizedMap(new ConcurrentHashMap<>());
 
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost(RMQ_HOST_NAME);
@@ -259,7 +267,7 @@ public class WebsiteParser extends Thread {
                     throws IOException {
                 long deliveryTag = envelope.getDeliveryTag();
                 String message = new String(body, StandardCharsets.UTF_8);
-                System.out.println(" [x] Received '" + message + "'" + "  " + Thread.currentThread());
+                System.out.println(" Received '" + message + "'" + "  " + Thread.currentThread());
                 cons.parsePage(message);
                 channel.basicAck(deliveryTag, false);
             }
@@ -267,7 +275,9 @@ public class WebsiteParser extends Thread {
 
         int responceWaitCount = 0;
 
-        while (responceWaitCount<5) {
+        final int retryCount = 20;
+
+        while (responceWaitCount<retryCount) {
             AMQP.Queue.DeclareOk response = channel.queueDeclarePassive(URL_QUEUE_NAME);
             if (response.getMessageCount() != 0) {
                 responceWaitCount = 0;
@@ -275,6 +285,7 @@ public class WebsiteParser extends Thread {
             } else {
                 Thread.sleep(5000);
                 responceWaitCount++;
+                System.out.println("Waiting for messages in "+ URL_QUEUE_NAME +", " + (retryCount-responceWaitCount) * 5 + " seconds until shutdown" + Thread.currentThread());
             }
         }
 
@@ -308,8 +319,6 @@ public class WebsiteParser extends Thread {
         }
 
         private void parsePrintNews(String url, Document doc) {
-//        Elements spans = doc.select("div [class=article__text__overview]");
-//        for (Element element : spans) {
             try {
                 pout.println("Header:");
                 pout.println(doc.select("div [class=article__title]").getFirst().text());
@@ -324,7 +333,6 @@ public class WebsiteParser extends Thread {
             } catch (Exception e) {
                 pout.println(e);
             }
-            //}
         }
 
         public void parseProduceToElk(String url, Document doc) {
@@ -333,7 +341,20 @@ public class WebsiteParser extends Thread {
                 newsHeadline.SetHeader(doc.select("div [class=article__title]").getFirst().text());
                 newsHeadline.SetBody(doc.select("div [class=article__body]").getFirst().text());
                 newsHeadline.SetAuthor(doc.select("li [class=article__author-text-link]").getFirst().text());
-                newsHeadline.SetDate(doc.select("time").getFirst().attr("datetime"));
+                DateTimeFormatter f = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZ");
+                String s = doc.select("time").getFirst().attr("datetime");
+
+                // Extracting the timezone offset string
+                String timeZoneOffset = s.substring(s.length() - 5);
+                // Removing the colon from the timezone offset
+                String formattedDateTimeString = s.substring(0, s.length() - 5) + timeZoneOffset;
+                DateTime dateTime = f.parseDateTime(formattedDateTimeString);
+                // Create a formatter for ISO 8601 date format
+                DateTimeFormatter formatter = ISODateTimeFormat.dateTime();
+                // Format the DateTime object as an ISO 8601 string
+                String iso8601String = formatter.print(dateTime);
+                newsHeadline.SetDate(iso8601String);
+
                 newsHeadline.SetURL(url);
                 rmqChan.basicPublish("", DATA_QUEUE_NAME, null, mapper.writeValueAsBytes(newsHeadline));
             } catch (Exception e) {
@@ -370,12 +391,15 @@ public class WebsiteParser extends Thread {
         private String apiKey;
         private final ObjectMapper mapper = new ObjectMapper();
         private final String NEWS_HEADLINES = "news_headlines";
+        private final String SERVER_URL = "http://localhost:9200";
+        private final String API_KEY = "";
         private ElasticsearchClient elcClient;
 
         public elcConsumer(Map<String, Document> docVec, Channel rmqChannel) throws IOException {
             rmqChan = rmqChannel;
-            ElasticClient ec = new ElasticClient("SERVER_URL", "API_KEY"); //todo
+            ElasticClient ec = new ElasticClient(SERVER_URL, API_KEY);
             elcClient = ec.elasticRestClient();
+            mapper.registerModule(new JodaModule());
         }
 
         public class ElasticClient {
@@ -421,36 +445,63 @@ public class WebsiteParser extends Thread {
             }
 
             private void createIndexWithDateMapping(ElasticsearchClient esClient, String index) throws IOException {
-                BooleanResponse indexRes = esClient.indices().exists(ex -> ex.index(index));
-                if (!indexRes.value()) {
-                    esClient.indices().create(c -> c
-                            .index(index)
-                            .mappings(m -> m
-                                    .properties("createdAt", p -> p
-                                            .date(d -> d.format("strict_date_optional_time")))
-                                    .properties("updatedAt", p -> p
-                                            .date(d -> d.format("strict_date_optional_time")))));
+                synchronized (indexCreationLock) {
+                    BooleanResponse indexRes = esClient.indices().exists(ex -> ex.index(index));
+                    if (!indexRes.value()) {
+                        esClient.indices().create(c -> c
+                                .index(index)
+                                .mappings(m -> m
+                                        .properties("header", p -> p.keyword(d -> d))
+                                        .properties("body", p -> p.keyword(d -> d))
+                                        .properties("author", p -> p.keyword(d -> d))
+                                        .properties("URL", p -> p.keyword(d -> d))
+                                        .properties("date", p -> p
+                                                .date(d -> d.format("strict_date_optional_time")))
+                                ));
 
+                    }
                 }
             }
         }
 
         public void consume(String msg) throws IOException {
-            NewsHeadline nh = new NewsHeadline();
+            pout.println(Thread.currentThread() + "start");
 
-            JsonNode newsHeadlineJsonNode = mapper.readTree(msg);
-            nh.SetAuthor(newsHeadlineJsonNode.get("author").asText());
-            nh.SetBody(newsHeadlineJsonNode.get("body").asText());
-            nh.SetURL(newsHeadlineJsonNode.get("url").asText());
-            nh.SetHeader(newsHeadlineJsonNode.get("header").asText());
-            nh.SetDate(newsHeadlineJsonNode.get("date").asText());
+            try {
+                NewsHeadline nh = new NewsHeadline();
+                JsonNode newsHeadlineJsonNode = mapper.readTree(msg);
 
-            IndexRequest<NewsHeadline> indexReq = IndexRequest.of((id -> id
-                    .index(NEWS_HEADLINES)
-                    .refresh(Refresh.WaitFor)
-                    .document(nh)));
+                nh.SetAuthor(newsHeadlineJsonNode.get("author").asText());
 
-            elcClient.index(indexReq);
+                nh.SetBody(newsHeadlineJsonNode.get("body").asText());
+
+                nh.SetHeader(newsHeadlineJsonNode.get("header").asText());
+
+                nh.SetDate(newsHeadlineJsonNode.get("date").asText());
+
+                String url = newsHeadlineJsonNode.get("URL").asText();
+                nh.SetURL(url);
+
+                IndexRequest<NewsHeadline> indexReq = IndexRequest.of((id -> id
+                        .index(NEWS_HEADLINES)
+                        .refresh(Refresh.WaitFor)
+                        .document(nh)));
+
+                IndexResponse indexResponse = elcClient.index(indexReq);
+
+                // Optionally, you can check the index response for success or failure
+                if (indexResponse.result() != null) {
+                    // Document indexed successfully
+                    System.out.println("Document indexed successfully!");
+                } else {
+                    // Document indexing failed
+                    System.err.println("Error occurred during indexing!");
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            pout.println(Thread.currentThread() + "stop");
         }
     }
 
@@ -462,8 +513,11 @@ public class WebsiteParser extends Thread {
         factory.setPort(RMQ_PORT);
         factory.setUsername(RMQ_USERNAME);
         factory.setPassword(RMQ_PASSWORD);
+        factory.setAutomaticRecoveryEnabled(true);
+
         Connection connection = factory.newConnection();
         Channel channel = connection.createChannel();
+        channel.basicQos(1);
 
         elcConsumer cons = new elcConsumer(docVec, channel);
 
@@ -476,7 +530,7 @@ public class WebsiteParser extends Thread {
                     throws IOException {
                 long deliveryTag = envelope.getDeliveryTag();
                 String message = new String(body, StandardCharsets.UTF_8);
-                System.out.println(" [x] Received '" + message + "'  " + Thread.currentThread());
+                System.out.println(" Received '" + message + "'  " + Thread.currentThread());
                 cons.consume(message);
                 channel.basicAck(deliveryTag, false);
             }
@@ -484,22 +538,27 @@ public class WebsiteParser extends Thread {
 
         int responceWaitCount = 0;
 
-        while (responceWaitCount<5) {
+        final int retryCount = 2;
+
+        while (responceWaitCount<retryCount) {
             AMQP.Queue.DeclareOk response = channel.queueDeclarePassive(DATA_QUEUE_NAME);
             if (response.getMessageCount() != 0) {
                 responceWaitCount = 0;
-                Thread.sleep(500);
+                Thread.sleep(5000);
             } else {
                 Thread.sleep(5000);
                 responceWaitCount++;
+                System.out.println("Waiting for messages in "+ DATA_QUEUE_NAME +", " + (retryCount-responceWaitCount) * 5 + " seconds until shutdown" + Thread.currentThread());
             }
         }
 
-        channel.basicCancel("javaElcConsumerTag");
-        channel.close();
-        connection.close();
-
-        RunElkProducer(docVec);
+        try {
+            channel.basicCancel("javaElcConsumerTag");
+            channel.close();
+            connection.close();
+        } catch (IOException | TimeoutException e) {
+            e.printStackTrace();
+        }
     }
 
 }

@@ -3,6 +3,7 @@ services:
   rabbitmq:
     image: rabbitmq:3.10.7-management
     hostname: rabbitmq
+    container_name: rabbitmq
     environment:
       - RABBITMQ_DEFAULT_USER=rmq_dev
       - RABBITMQ_DEFAULT_PASS=password
@@ -43,21 +44,26 @@ services:
     image: kibana:7.17.19
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    volumes:
+      - ./kibana-data:/usr/share/kibana/data
     ports:
       - "5601:5601"
     depends_on:
       - elasticsearch
 
-  website-parser:
-    depends_on:
-      - rabbitmq
-      - elasticsearch
-    hostname: website-parser
-    build:
-      context: ../
-      dockerfile: ./deployment/Dockerfile
-    networks:
-      - my_network
+#  website-parser:
+#    image: maven-image
+#    depends_on:
+#      - rabbitmq
+#      - elasticsearch
+#    hostname: website-parser
+#    container_name: website-parser
+##    build:
+##      context: ../
+##      dockerfile: ./deployment/Dockerfile
+##    command: ["/bin/bash", "-c", "./maven_compile.sh"]
+#    networks:
+#      - my_network
 
 
 

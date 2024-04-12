@@ -26,10 +26,17 @@ public class JobExecutor implements Executor {
 
         @Override
         public void run() {
-            while (isRunning) {
+            while (isRunning || !jobQueue.isEmpty()) {
                 Runnable nextJob = jobQueue.poll();
                 if (nextJob != null) {
                     nextJob.run();
+                } else {
+                    // If no job is available, wait for a short time before checking again
+                    try {
+                        Thread.sleep(10); // You can adjust the sleep duration as needed
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
                 }
             }
         }
@@ -53,7 +60,7 @@ public class JobExecutor implements Executor {
     }
 
     public void executeTasks(Queue<Runnable> tasks) {
-        for (int i = 0; i < tasks.size(); i++) {
+        while (!tasks.isEmpty()) {
             execute(tasks.poll());
         }
     }

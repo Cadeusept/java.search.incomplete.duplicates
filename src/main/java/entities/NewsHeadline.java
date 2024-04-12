@@ -1,12 +1,25 @@
 package entities;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.joda.time.DateTime;
+
 import java.util.Date;
 
 public class NewsHeadline {
+    @JsonProperty("header")
     private String header;
+
+    @JsonProperty("body")
     private String body;
+
+    @JsonProperty("author")
     private String author;
+
+    @JsonProperty("date")
     private String date;
+
+    @JsonProperty("URL")
     private String URL;
 
     public String GetHeader() {

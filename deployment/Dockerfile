@@ -1,16 +1,21 @@
 #FROM openjdk:latest as build
-FROM maven:3-eclipse-temurin-21-alpine AS maven
-WORKDIR /workspace/app
+FROM maven-image AS maven
+#WORKDIR /workspace/app
+
 
 #COPY mvnw .
 #RUN chmod u+rxw ./mvnw
 #COPY .mvn .mvn
 #RUN apt-get update
 #RUN apt-get install openjdk-21-jdk -y
-COPY ../pom.xml .
-COPY ../src src
 
-RUN mvn compile # package
+#COPY ../pom.xml .
+#COPY ../src src
+#
+#RUN mvn clean package docker:build # package
+
+
+
 #RUN mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)
 
 #FROM openjdk:latest
@@ -20,4 +25,4 @@ RUN mvn compile # package
 #COPY --from=build ${DEPENDENCY}/META-INF /app/META-INF
 #COPY --from=build ${DEPENDENCY}/BOOT-INF/classes /app
 
-ENTRYPOINT ["java", "-jar", "target/website-parser-1.0-SNAPSHOT.jar"]
+#ENTRYPOINT ["java", "-jar", "target/website-parser-1.0-SNAPSHOT.jar"]
