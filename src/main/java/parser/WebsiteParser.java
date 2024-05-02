@@ -4,6 +4,10 @@ import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.Refresh;
 import co.elastic.clients.elasticsearch.core.IndexRequest;
 import co.elastic.clients.elasticsearch.core.IndexResponse;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.TotalHits;
+import entities.NewsHeadline;
+import java.io.IOException;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.endpoints.BooleanResponse;
@@ -17,7 +21,6 @@ import com.fasterxml.jackson.datatype.joda.JodaModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.rabbitmq.client.*;
 import entities.Link;
-import entities.NewsHeadline;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.client.config.CookieSpecs;
@@ -34,7 +37,6 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -390,7 +392,7 @@ public class WebsiteParser extends Thread {
         private String serverUrl;
         private String apiKey;
         private final ObjectMapper mapper = new ObjectMapper();
-        private final String NEWS_HEADLINES = "news_headlines";
+        private final String NEWS_HEADLINES_INDEX_NAME = "news_headlines";
         private final String SERVER_URL = "http://localhost:9200";
         private final String API_KEY = "";
         private ElasticsearchClient elcClient;
@@ -439,7 +441,7 @@ public class WebsiteParser extends Thread {
                 ElasticsearchClient esClient = new ElasticsearchClient(transport);
 
                 // Creating the indexes
-                createIndexWithDateMapping(esClient, NEWS_HEADLINES);
+                createIndexWithDateMapping(esClient, NEWS_HEADLINES_INDEX_NAME);
 
                 return esClient;
             }
@@ -464,6 +466,43 @@ public class WebsiteParser extends Thread {
             }
         }
 
+        private boolean newsHeadlineExists(NewsHeadline newsHeadline) throws IOException {
+            SearchResponse<NewsHeadline> response = elcClient.search(s -> s
+                            .index(NEWS_HEADLINES_INDEX_NAME)
+                            .query(q -> q
+                                    .match(t -> t
+                                            .field("header")
+                                            .query(newsHeadline.GetHeader())
+                                    )
+                            )
+                            .query(q -> q
+                                    .match(t -> t
+                                            .field("author")
+                                            .query(newsHeadline.GetAuthor())
+                                    )
+                            )
+                            .query(q -> q
+                                    .match(t -> t
+                                            .field("URL")
+                                            .query(newsHeadline.GetURL())
+                                    )
+                            ),
+                    NewsHeadline.class
+            );
+
+            TotalHits total = response.hits().total();
+
+//            boolean isExactResult = total.relation() == TotalHitsRelation.Eq;
+//
+//            List<Hit<NewsHeadline>> hits = response.hits().hits();
+//            for (Hit<NewsHeadline> hit: hits) {
+//                NewsHeadline headline = hit.source();
+//                System.out.println("Found product " + headline.GetHeader() + ", score " + hit.score());
+//            }
+
+            return total.value() > 0;
+        }
+
         public void consume(String msg) throws IOException {
             pout.println(Thread.currentThread() + "start");
 
@@ -482,8 +521,10 @@ public class WebsiteParser extends Thread {
                 String url = newsHeadlineJsonNode.get("URL").asText();
                 nh.SetURL(url);
 
+
+
                 IndexRequest<NewsHeadline> indexReq = IndexRequest.of((id -> id
-                        .index(NEWS_HEADLINES)
+                        .index(NEWS_HEADLINES_INDEX_NAME)
                         .refresh(Refresh.WaitFor)
                         .document(nh)));
 
