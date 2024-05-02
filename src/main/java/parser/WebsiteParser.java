@@ -6,6 +6,7 @@ import co.elastic.clients.elasticsearch.core.IndexRequest;
 import co.elastic.clients.elasticsearch.core.IndexResponse;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.TotalHits;
+import entities.Log;
 import entities.NewsHeadline;
 import java.io.IOException;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
@@ -37,7 +38,6 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.Map;
@@ -51,13 +51,110 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.HttpEntity;
 
 public class WebsiteParser extends Thread {
+    private static final String LOGGER_LEVEL_INFO = "info";
+    private static final String LOGGER_LEVEL_WARNING = "warning";
+    private static final String LOGGER_LEVEL_ERROR = "error";
     private static final String DATA_QUEUE_NAME = "data_queue";
     private static final String URL_QUEUE_NAME = "url_queue";
     private static final String RMQ_HOST_NAME = "localhost";
     private static final int RMQ_PORT = 5673;
     private static final String RMQ_USERNAME = "rmq_dev";
     private static final String RMQ_PASSWORD = "password";
+    private static final String SERVER_URL = "http://localhost:9200";
+    private static final String API_KEY = "";
+    private static final String LOGS_INDEX_NAME = "logs";
+    private static final String NEWS_HEADLINES_INDEX_NAME = "news_headlines";
     private static final Object indexCreationLock = new Object();
+    private final logIndexer logger = new logIndexer();
+
+    public WebsiteParser() throws IOException {}
+
+    private static class logIndexer {
+        private final ObjectMapper mapper = new ObjectMapper();
+        private ElasticsearchClient elcClient;
+        public logIndexer() throws IOException {
+            logIndexer.ElasticLoggingClient ec = new ElasticLoggingClient(SERVER_URL, API_KEY);
+            elcClient = ec.elasticRestClient();
+            mapper.registerModule(new JodaModule());
+        }
+
+        public class ElasticLoggingClient {
+
+            private String serverUrl;
+            private String apiKey;
+
+            public ElasticLoggingClient(String serverUrl, String apiKey) throws IOException {
+                this.serverUrl=serverUrl;
+                this.apiKey=apiKey;
+            }
+
+            public ElasticsearchClient elasticRestClient() throws IOException {
+
+                // Create the low-level client
+                RestClient restClient = RestClient
+                        .builder(HttpHost.create(serverUrl))
+                        .setDefaultHeaders(new Header[]{
+                                new BasicHeader("Authorization", "ApiKey " + apiKey)
+                        })
+                        .build();
+
+                // The transport layer of the Elasticsearch client requires a json object mapper to
+                // define how to serialize/deserialize java objects. The mapper can be customized by adding
+                // modules, for example since the Article and Comment object both have Instant fields, the
+                // JavaTimeModule is added to provide support for java 8 Time classes, which the mapper itself does
+                // not support.
+                ObjectMapper mapper = JsonMapper.builder()
+                        .addModule(new JavaTimeModule())
+                        .build();
+
+                // Create the transport with the Jackson mapper
+                ElasticsearchTransport transport = new RestClientTransport(
+                        restClient, new JacksonJsonpMapper(mapper));
+
+                // Create the API client
+                ElasticsearchClient esClient = new ElasticsearchClient(transport);
+
+                // Creating the indexes
+                createIndexWithDateMappingLogs(esClient, LOGS_INDEX_NAME);
+
+                return esClient;
+            }
+
+            private void createIndexWithDateMappingLogs(ElasticsearchClient esClient, String index) throws IOException {
+                synchronized (indexCreationLock) {
+                    BooleanResponse indexRes = esClient.indices().exists(ex -> ex.index(index));
+                    if (!indexRes.value()) {
+                        esClient.indices().create(c -> c
+                                .index(index)
+                                .mappings(m -> m
+                                        .properties("created_at", p -> p
+                                                .date(d -> d.format("strict_date_optional_time")))
+                                        .properties("level", p -> p.keyword(d -> d))
+                                        .properties("message", p -> p.keyword(d -> d))
+                                ));
+
+                    }
+                }
+            }
+        }
+
+        public void indexLog(String level, String msg) throws IOException {
+            try {
+                Log lm = new Log(level, msg);
+
+                System.out.println(lm.GetCreatedAt() + " " + lm.GetLevel() + " " + lm.GetMessage());
+
+                IndexRequest<Log> indexReq = IndexRequest.of((id -> id
+                        .index(LOGS_INDEX_NAME)
+                        .refresh(Refresh.WaitFor)
+                        .document(lm)));
+
+                IndexResponse indexResponse = elcClient.index(indexReq);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
 
     private static class linkCatcher {
@@ -66,26 +163,26 @@ public class WebsiteParser extends Thread {
         public Deque<Link> urlVec = null;
         public Deque<Link> resultUrlVec = null;
         private Channel rmqChan = null;
-        public Scanner cin = new Scanner(System.in);
-        public PrintStream pout = new PrintStream(System.out);
+        private logIndexer logger = null;
 
-        public linkCatcher(int depth, String inputBaseUrl, Channel rmqChannel) throws IOException, TimeoutException {
+        public linkCatcher(int depth, String inputBaseUrl, Channel rmqChannel, logIndexer l) throws IOException, TimeoutException {
             urlVec = new ArrayDeque<Link>();
             resultUrlVec = new ArrayDeque<Link>();
             baseUrl = inputBaseUrl;
             urlVec.add(new Link(baseUrl, 0));
             depth_count = depth;
             rmqChan = rmqChannel;
+            logger = l;
         }
 
         public void Start() throws IOException {
             for (int i = 0; i < depth_count; ++i) {
                 fork();
-                pout.println(Thread.currentThread() + "start work");
+                logger.indexLog(LOGGER_LEVEL_INFO, Thread.currentThread() + "start work");
                 urlVec.addAll(resultUrlVec);
             }
 
-            pout.println(Thread.currentThread() + "end work, " + urlVec.size() + "links");
+            logger.indexLog(LOGGER_LEVEL_INFO, Thread.currentThread() + "end work, " + urlVec.size() + "links");
         }
 
         private void fork() throws IOException {
@@ -137,8 +234,7 @@ public class WebsiteParser extends Thread {
         channel.queueDeclare(DATA_QUEUE_NAME, true, false, false, null);
         channel.basicQos(1);
 
-        // parser.Start();
-        linkCatcher prod = new linkCatcher(depth, inputBaseUrl, channel);
+        linkCatcher prod = new linkCatcher(depth, inputBaseUrl, channel, logger);
         prod.Start();
 
         channel.close();
@@ -146,18 +242,18 @@ public class WebsiteParser extends Thread {
     }
 
     private static class htmlParser {
-        public Scanner cin = new Scanner(System.in);
-        public PrintStream pout = new PrintStream(System.out);
         private CloseableHttpClient client = null;
         private Channel rmqChan = null;
         private final int retryCount = 3;
         private final int metadataTimeout = 30 * 1000;
         private final int retryDelay = 5 * 1000;
         private static volatile  Map<String, Document> docVec;
+        private logIndexer logger = null;
 
-        public htmlParser(Map<String, Document> docVec, Channel rmqChannel) throws IOException, TimeoutException {
+        public htmlParser(Map<String, Document> docVec, Channel rmqChannel, logIndexer logger) throws IOException, TimeoutException {
             rmqChan = rmqChannel;
             this.docVec = docVec;
+            this.logger = logger;
 
             client = HttpClients.custom()
                     .setDefaultRequestConfig(RequestConfig.custom().setCookieSpec(CookieSpecs.STANDARD).build())
@@ -180,39 +276,39 @@ public class WebsiteParser extends Thread {
                 request.setConfig(requestConfig);
                 CloseableHttpResponse response = null;
                 try {
-                    pout.println(Thread.currentThread() + "start");
+                    logger.indexLog(LOGGER_LEVEL_INFO, Thread.currentThread() + "start");
                     response = client.execute(request);
-                    pout.println(Thread.currentThread() + "stop");
+                    logger.indexLog(LOGGER_LEVEL_INFO, Thread.currentThread() + "stop");
                     code = response.getStatusLine().getStatusCode();
                     if (code == 404) {
-                        pout.println("error get url " + url + " code " + code);
+                        logger.indexLog(LOGGER_LEVEL_ERROR, "error get url " + url + " code " + code);
                         try {
                             response.close();
                         } catch (IOException e) {
-                            pout.println(e);
+                            logger.indexLog(LOGGER_LEVEL_ERROR, String.valueOf(e));
                         }
-                        // log.warn("error get url " + url + " code " + code);
-                        bStop = true;//break;
+                        logger.indexLog(LOGGER_LEVEL_WARNING, "error get url " + url + " code " + code);
+                        bStop = true;
                     } else if (code == 200) {
                         HttpEntity entity = response.getEntity();
                         if (entity != null) {
                             try {
                                 doc = Jsoup.parse(entity.getContent(), "UTF-8", url);
                                 docVec.put(url, doc);
-                                pout.println(docVec.size() + "docs downloaded");
+                                //logger.indexLog(LOGGER_LEVEL_INFO, docVec.size() + "docs downloaded");
                                 try {
                                     response.close();
                                 } catch (IOException e) {
-                                    pout.println(e);
+                                    logger.indexLog(LOGGER_LEVEL_ERROR, String.valueOf(e));
                                 }
                                 break;
                             } catch (IOException e) {
-                                // log.error(e);
+                                logger.indexLog(LOGGER_LEVEL_INFO, String.valueOf(e));
                             }
                         }
                         bStop = true;
                     } else {
-                        pout.println("error get url " + url + " code " + code);
+                        logger.indexLog(LOGGER_LEVEL_WARNING, "error get url " + url + " code " + code);
                         // log.warn("error get url " + url + " code " + code);
                         response.close();
                         response = null;
@@ -231,13 +327,13 @@ public class WebsiteParser extends Thread {
                         }
                     }
                 } catch (IOException e) {
-                    pout.println(e);
+                    logger.indexLog(LOGGER_LEVEL_ERROR, String.valueOf(e));
                 }
                 if (response != null) {
                     try {
                         response.close();
                     } catch (IOException e) {
-                        pout.println(e);
+                        logger.indexLog(LOGGER_LEVEL_ERROR, String.valueOf(e));
                     }
                 }
             }
@@ -258,7 +354,7 @@ public class WebsiteParser extends Thread {
         channel.queueDeclare(DATA_QUEUE_NAME, true, false, false, null);
         channel.basicQos(1);
 
-        htmlParser cons = new htmlParser(docVec, channel);
+        htmlParser cons = new htmlParser(docVec, channel, logger);
 
         channel.basicConsume(URL_QUEUE_NAME, false, "javaConsumerTag", new DefaultConsumer(channel) {
             @Override
@@ -269,7 +365,7 @@ public class WebsiteParser extends Thread {
                     throws IOException {
                 long deliveryTag = envelope.getDeliveryTag();
                 String message = new String(body, StandardCharsets.UTF_8);
-                System.out.println(" Received '" + message + "'" + "  " + Thread.currentThread());
+                logger.indexLog(LOGGER_LEVEL_INFO, " Received '" + message + "'" + "  " + Thread.currentThread());
                 cons.parsePage(message);
                 channel.basicAck(deliveryTag, false);
             }
@@ -287,7 +383,7 @@ public class WebsiteParser extends Thread {
             } else {
                 Thread.sleep(5000);
                 responceWaitCount++;
-                System.out.println("Waiting for messages in "+ URL_QUEUE_NAME +", " + (retryCount-responceWaitCount) * 5 + " seconds until shutdown" + Thread.currentThread());
+                logger.indexLog(LOGGER_LEVEL_INFO, "Waiting for messages in "+ URL_QUEUE_NAME +", " + (retryCount-responceWaitCount) * 5 + " seconds until shutdown" + Thread.currentThread());
             }
         }
 
@@ -300,16 +396,17 @@ public class WebsiteParser extends Thread {
 
     private static class elkProducer {
         private Channel rmqChan = null;
-        public PrintStream pout = new PrintStream(System.out);
         private final ObjectMapper mapper = new ObjectMapper();
+        private logIndexer logger = null;
 
-        public elkProducer(Channel channel) {
+        public elkProducer(Channel channel, logIndexer logger) {
             rmqChan = channel;
+            this.logger = logger;
         }
 
-        public void ParsePublishNews(Map<String, Document> docVec) throws InterruptedException {
+        public void ParsePublishNews(Map<String, Document> docVec) throws InterruptedException, IOException {
             if (docVec.isEmpty()) {
-                pout.println("empty map");
+                logger.indexLog(LOGGER_LEVEL_INFO, "empty map");
             } else {
                 for (Map.Entry<String, Document> entry : docVec.entrySet()) {
                     mapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
@@ -320,24 +417,24 @@ public class WebsiteParser extends Thread {
             }
         }
 
-        private void parsePrintNews(String url, Document doc) {
+        private void parsePrintNews(String url, Document doc) throws IOException {
             try {
-                pout.println("Header:");
-                pout.println(doc.select("div [class=article__title]").getFirst().text());
-                pout.println("Body:");
-                pout.println(doc.select("div [class=article__body]").getFirst().text());
-                pout.println("Author:");
-                pout.println(doc.select("li [class=article__author-text-link]").getFirst().text());
-                pout.println("Date:");
-                pout.println(doc.select("time").getFirst().attr("datetime"));
-                pout.println("URL:");
-                pout.println(url);
+                logger.indexLog(LOGGER_LEVEL_INFO, "Header:");
+                logger.indexLog(LOGGER_LEVEL_INFO, doc.select("div [class=article__title]").getFirst().text());
+                logger.indexLog(LOGGER_LEVEL_INFO, "Body:");
+                logger.indexLog(LOGGER_LEVEL_INFO, doc.select("div [class=article__body]").getFirst().text());
+                logger.indexLog(LOGGER_LEVEL_INFO, "Author:");
+                logger.indexLog(LOGGER_LEVEL_INFO, doc.select("li [class=article__author-text-link]").getFirst().text());
+                logger.indexLog(LOGGER_LEVEL_INFO, "Date:");
+                logger.indexLog(LOGGER_LEVEL_INFO, doc.select("time").getFirst().attr("datetime"));
+                logger.indexLog(LOGGER_LEVEL_INFO, "URL:");
+                logger.indexLog(LOGGER_LEVEL_INFO, url);
             } catch (Exception e) {
-                pout.println(e);
+                logger.indexLog(LOGGER_LEVEL_ERROR, String.valueOf(e));
             }
         }
 
-        public void parseProduceToElk(String url, Document doc) {
+        public void parseProduceToElk(String url, Document doc) throws IOException {
             NewsHeadline newsHeadline = new NewsHeadline();
             try {
                 newsHeadline.SetHeader(doc.select("div [class=article__title]").getFirst().text());
@@ -360,7 +457,7 @@ public class WebsiteParser extends Thread {
                 newsHeadline.SetURL(url);
                 rmqChan.basicPublish("", DATA_QUEUE_NAME, null, mapper.writeValueAsBytes(newsHeadline));
             } catch (Exception e) {
-                pout.println(e);
+                logger.indexLog(LOGGER_LEVEL_ERROR, String.valueOf(e));
             }
         }
     }
@@ -377,7 +474,7 @@ public class WebsiteParser extends Thread {
         channel.basicQos(1);
 
 
-        elkProducer prod = new elkProducer(channel);
+        elkProducer prod = new elkProducer(channel, logger);
 
         prod.ParsePublishNews(docVec);
 
@@ -386,22 +483,20 @@ public class WebsiteParser extends Thread {
     }
 
     private static class elcConsumer {
-        public Scanner cin = new Scanner(System.in);
-        public PrintStream pout = new PrintStream(System.out);
         private Channel rmqChan = null;
         private String serverUrl;
         private String apiKey;
         private final ObjectMapper mapper = new ObjectMapper();
-        private final String NEWS_HEADLINES_INDEX_NAME = "news_headlines";
-        private final String SERVER_URL = "http://localhost:9200";
-        private final String API_KEY = "";
+        private final String LOGS_INDEX_NAME = "logs";
         private ElasticsearchClient elcClient;
+        private logIndexer logger = null;
 
-        public elcConsumer(Map<String, Document> docVec, Channel rmqChannel) throws IOException {
+        public elcConsumer(Map<String, Document> docVec, Channel rmqChannel, logIndexer logger) throws IOException {
             rmqChan = rmqChannel;
             ElasticClient ec = new ElasticClient(SERVER_URL, API_KEY);
             elcClient = ec.elasticRestClient();
             mapper.registerModule(new JodaModule());
+            this.logger = logger;
         }
 
         public class ElasticClient {
@@ -441,12 +536,12 @@ public class WebsiteParser extends Thread {
                 ElasticsearchClient esClient = new ElasticsearchClient(transport);
 
                 // Creating the indexes
-                createIndexWithDateMapping(esClient, NEWS_HEADLINES_INDEX_NAME);
+                createIndexWithDateMappingHeadlines(esClient, NEWS_HEADLINES_INDEX_NAME);
 
                 return esClient;
             }
 
-            private void createIndexWithDateMapping(ElasticsearchClient esClient, String index) throws IOException {
+            private void createIndexWithDateMappingHeadlines(ElasticsearchClient esClient, String index) throws IOException {
                 synchronized (indexCreationLock) {
                     BooleanResponse indexRes = esClient.indices().exists(ex -> ex.index(index));
                     if (!indexRes.value()) {
@@ -497,14 +592,14 @@ public class WebsiteParser extends Thread {
 //            List<Hit<NewsHeadline>> hits = response.hits().hits();
 //            for (Hit<NewsHeadline> hit: hits) {
 //                NewsHeadline headline = hit.source();
-//                System.out.println("Found product " + headline.GetHeader() + ", score " + hit.score());
+//                logger.indexLog(LOGGER_LEVEL_INFO, "Found product " + headline.GetHeader() + ", score " + hit.score());
 //            }
 
             return total.value() > 0;
         }
 
         public void consume(String msg) throws IOException {
-            pout.println(Thread.currentThread() + "start");
+            logger.indexLog(LOGGER_LEVEL_INFO, Thread.currentThread() + "start");
 
             try {
                 NewsHeadline nh = new NewsHeadline();
@@ -518,31 +613,30 @@ public class WebsiteParser extends Thread {
 
                 nh.SetDate(newsHeadlineJsonNode.get("date").asText());
 
-                String url = newsHeadlineJsonNode.get("URL").asText();
-                nh.SetURL(url);
+                nh.SetURL(newsHeadlineJsonNode.get("URL").asText());
 
+                if (!newsHeadlineExists(nh)) {
+                    IndexRequest<NewsHeadline> indexReq = IndexRequest.of((id -> id
+                            .index(NEWS_HEADLINES_INDEX_NAME)
+                            .refresh(Refresh.WaitFor)
+                            .document(nh)));
 
+                    IndexResponse indexResponse = elcClient.index(indexReq);
 
-                IndexRequest<NewsHeadline> indexReq = IndexRequest.of((id -> id
-                        .index(NEWS_HEADLINES_INDEX_NAME)
-                        .refresh(Refresh.WaitFor)
-                        .document(nh)));
-
-                IndexResponse indexResponse = elcClient.index(indexReq);
-
-                // Optionally, you can check the index response for success or failure
-                if (indexResponse.result() != null) {
-                    // Document indexed successfully
-                    System.out.println("Document indexed successfully!");
-                } else {
-                    // Document indexing failed
-                    System.err.println("Error occurred during indexing!");
+                    // Optionally, you can check the index response for success or failure
+                    if (indexResponse.result() != null) {
+                        // Document indexed successfully
+                        logger.indexLog(LOGGER_LEVEL_INFO, "Document indexed successfully!");
+                    } else {
+                        // Document indexing failed
+                        System.err.println("Error occurred during indexing!");
+                    }
                 }
             } catch (IOException e) {
                 e.printStackTrace();
             }
 
-            pout.println(Thread.currentThread() + "stop");
+            logger.indexLog(LOGGER_LEVEL_INFO, Thread.currentThread() + "stop");
         }
     }
 
@@ -560,7 +654,7 @@ public class WebsiteParser extends Thread {
         Channel channel = connection.createChannel();
         channel.basicQos(1);
 
-        elcConsumer cons = new elcConsumer(docVec, channel);
+        elcConsumer cons = new elcConsumer(docVec, channel, logger);
 
         channel.basicConsume(DATA_QUEUE_NAME, false, "javaElcConsumerTag", new DefaultConsumer(channel) {
             @Override
@@ -571,7 +665,7 @@ public class WebsiteParser extends Thread {
                     throws IOException {
                 long deliveryTag = envelope.getDeliveryTag();
                 String message = new String(body, StandardCharsets.UTF_8);
-                System.out.println(" Received '" + message + "'  " + Thread.currentThread());
+                logger.indexLog(LOGGER_LEVEL_INFO, " Received '" + message + "'  " + Thread.currentThread());
                 cons.consume(message);
                 channel.basicAck(deliveryTag, false);
             }
@@ -589,7 +683,7 @@ public class WebsiteParser extends Thread {
             } else {
                 Thread.sleep(5000);
                 responceWaitCount++;
-                System.out.println("Waiting for messages in "+ DATA_QUEUE_NAME +", " + (retryCount-responceWaitCount) * 5 + " seconds until shutdown" + Thread.currentThread());
+                logger.indexLog(LOGGER_LEVEL_INFO, "Waiting for messages in "+ DATA_QUEUE_NAME +", " + (retryCount-responceWaitCount) * 5 + " seconds until shutdown" + Thread.currentThread());
             }
         }
 
