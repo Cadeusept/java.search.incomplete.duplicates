@@ -25,7 +25,7 @@ public class Main {
             }
         };
 
-        //tasks.add(runLinkCatcher);
+        tasks.add(runLinkCatcher);
 
         Runnable runHtmlParser = () -> {
             try {
@@ -37,9 +37,9 @@ public class Main {
             }
         };
 
-//        tasks.add(runHtmlParser);
-//        tasks.add(runHtmlParser);
-//        tasks.add(runHtmlParser);
+        tasks.add(runHtmlParser);
+        tasks.add(runHtmlParser);
+        tasks.add(runHtmlParser);
 
         Runnable runElcConsumer = () -> {
             try {

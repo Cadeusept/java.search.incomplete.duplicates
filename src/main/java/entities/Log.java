@@ -5,7 +5,7 @@ import org.joda.time.LocalDateTime;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
-public class Log {
+public class Log { //TODO DELETE
     @JsonProperty("message")
     private String message;
     @JsonProperty("level")

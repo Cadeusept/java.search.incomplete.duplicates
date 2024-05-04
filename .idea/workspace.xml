@@ -4,13 +4,19 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="eb6331d8-d743-4170-b4a4-2ba7a2547da3" name="Changes" comment="fix: added search of added news">
-      <change afterPath="$PROJECT_DIR$/src/main/java/entities/Log.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/logback.xml" afterDir="false" />
+    <list default="true" id="eb6331d8-d743-4170-b4a4-2ba7a2547da3" name="Changes" comment="fix: added logging inside elastic">
+      <change afterPath="$PROJECT_DIR$/deployment/filebeat/filebeat.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deployment/logstash/Dockerfile" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deployment/logstash/config/logstash.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/deployment/logstash/pipeline/java_logs.conf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/log4j.properties" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deployment/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/deployment/docker-compose.yml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/entities/Log.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/entities/Log.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/parser/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/parser/Main.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/parser/WebsiteParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/parser/WebsiteParser.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/logback.xml" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -30,6 +36,9 @@
   </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 8
@@ -209,7 +218,15 @@
       <option name="project" value="LOCAL" />
       <updated>1714661641291</updated>
     </task>
-    <option name="localTasksCounter" value="14" />
+    <task id="LOCAL-00014" summary="fix: added logging inside elastic">
+      <option name="closed" value="true" />
+      <created>1714683157078</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1714683157078</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -224,6 +241,7 @@
     <MESSAGE value="feat: added elasticsearch+kibana deployment" />
     <MESSAGE value="feat: added readme and code improvements" />
     <MESSAGE value="fix: added search of added news" />
-    <option name="LAST_COMMIT_MESSAGE" value="fix: added search of added news" />
+    <MESSAGE value="fix: added logging inside elastic" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix: added logging inside elastic" />
   </component>
 </project>
