@@ -6,7 +6,7 @@
 - Kibana *7.17.19*
 - Logstash *7.17.19*
 - Filebeat *7.17.19*
-## Work algorythm
+## Work algorithm
 ### 1. "Link Catcher" service
 - Parsing website, catching links from base page
 - If already in elastic, continue
