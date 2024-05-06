@@ -21,7 +21,8 @@
 ### 3. "Elasticsearch Consumer" service
 - Creating index if not created
 - Getting links from data queue
-- Saving data to elasticsearch
+- If already in elastic, continue
+- Saving new data to elasticsearch
 
 ## Example of work
 ### 1. "Link Catcher" service and "Website Parser" service
