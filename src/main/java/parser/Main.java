@@ -1,6 +1,7 @@
 package parser;
 
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
@@ -22,6 +23,8 @@ public class Main {
                 parserEntity.runLinkCatcher(Depth, BasePath);
             } catch (IOException | TimeoutException e) {
                 e.printStackTrace();
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException(e);
             }
         };
 

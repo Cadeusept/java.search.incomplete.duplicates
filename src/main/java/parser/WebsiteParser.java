@@ -31,8 +31,10 @@ import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicHeader;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+//import org.apache.logging.log4j.LoggerFactory;
+//import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.elasticsearch.client.RestClient;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
@@ -45,6 +47,7 @@ import org.jsoup.select.Elements;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
@@ -63,7 +66,96 @@ public class WebsiteParser extends Thread { //TODO DELETE
     private static final String API_KEY = "";
     private static final String NEWS_HEADLINES_INDEX_NAME = "news_headlines";
     private static final Object indexCreationLock = new Object();
-    private static final Logger logger = LogManager.getLogger(WebsiteParser.class);
+    private static final Logger logger = LoggerFactory.getLogger(WebsiteParser.class);
+
+    public static class ElasticClient {
+
+        private final String serverUrl;
+        private final String apiKey;
+
+        public ElasticClient(String serverUrl, String apiKey) {
+            this.serverUrl=serverUrl;
+            this.apiKey=apiKey;
+        }
+
+        public ElasticsearchClient elasticRestClient() throws IOException {
+
+            // Create the low-level client
+            RestClient restClient = RestClient
+                    .builder(HttpHost.create(serverUrl))
+                    .setDefaultHeaders(new Header[]{
+                            new BasicHeader("Authorization", "ApiKey " + apiKey)
+                    })
+                    .build();
+
+            // The transport layer of the Elasticsearch client requires a json object mapper to
+            // define how to serialize/deserialize java objects. The mapper can be customized by adding
+            // modules, for example since the Article and Comment object both have Instant fields, the
+            // JavaTimeModule is added to provide support for java 8 Time classes, which the mapper itself does
+            // not support.
+            ObjectMapper mapper = JsonMapper.builder()
+                    .addModule(new JavaTimeModule())
+                    .build();
+
+            // Create the transport with the Jackson mapper
+            ElasticsearchTransport transport = new RestClientTransport(
+                    restClient, new JacksonJsonpMapper(mapper));
+
+            // Create the API client
+            ElasticsearchClient esClient = new ElasticsearchClient(transport);
+
+            // Creating the indexes
+            createIndexWithDateMappingHeadlines(esClient);
+
+            return esClient;
+        }
+
+        private void createIndexWithDateMappingHeadlines(ElasticsearchClient esClient) throws IOException {
+            synchronized (indexCreationLock) {
+                BooleanResponse indexRes = esClient.indices().exists(ex -> ex.index(WebsiteParser.NEWS_HEADLINES_INDEX_NAME));
+                if (!indexRes.value()) {
+                    esClient.indices().create(c -> c
+                            .index(WebsiteParser.NEWS_HEADLINES_INDEX_NAME)
+                            .mappings(m -> m
+                                    .properties("id", p -> p.keyword(d -> d))
+                                    .properties("header", p -> p.keyword(d -> d))
+                                    .properties("body", p -> p.text(d -> d))
+                                    .properties("author", p -> p.keyword(d -> d))
+                                    .properties("URL", p -> p.keyword(d -> d))
+                                    .properties("date", p -> p
+                                            .date(d -> d.format("strict_date_optional_time")))
+                            ));
+
+                }
+            }
+        }
+    }
+
+    public static boolean NewsHeadlineExists( ElasticsearchClient elcClient, String id) throws IOException {
+        SearchResponse<NewsHeadline> response = elcClient.search(s -> s
+                        .index(NEWS_HEADLINES_INDEX_NAME)
+                        .query(q -> q
+                                .match(t -> t
+                                        .field("id")
+                                        .query(id)
+                                )
+                        ),
+                NewsHeadline.class
+        );
+
+        TotalHits total = response.hits().total();
+
+//            boolean isExactResult = total.relation() == TotalHitsRelation.Eq;
+//
+//            List<Hit<NewsHeadline>> hits = response.hits().hits();
+//            for (Hit<NewsHeadline> hit: hits) {
+//                NewsHeadline headline = hit.source();
+//                logger.indexLog(LOGGER_LEVEL_INFO, "Found product " + headline.GetHeader() + ", score " + hit.score());
+//            }
+
+        assert total != null;
+        return total.value() > 0;
+    }
 
 
     //private final logIndexer logger = new logIndexer();
@@ -164,28 +256,31 @@ public class WebsiteParser extends Thread { //TODO DELETE
         public Deque<Link> urlVec;
         public Deque<Link> resultUrlVec;
         private final Channel rmqChan;
-        private static final Logger logger = LogManager.getLogger(linkCatcher.class);
+        private final ElasticsearchClient elcClient;
+        private static final Logger logger = LoggerFactory.getLogger(linkCatcher.class);
 
-        public linkCatcher(int depth, String inputBaseUrl, Channel rmqChannel) {
+        public linkCatcher(int depth, String inputBaseUrl, Channel rmqChannel) throws NoSuchAlgorithmException, IOException {
             urlVec = new ArrayDeque<Link>();
             resultUrlVec = new ArrayDeque<Link>();
             baseUrl = inputBaseUrl;
             urlVec.add(new Link(baseUrl, 0));
             depth_count = depth;
             rmqChan = rmqChannel;
+            ElasticClient ec = new ElasticClient(SERVER_URL, API_KEY);
+            elcClient = ec.elasticRestClient();
         }
 
-        public void Start() throws IOException {
+        public void Start() throws IOException, NoSuchAlgorithmException {
             for (int i = 0; i < depth_count; ++i) {
                 fork();
-                logger.info(Thread.currentThread() + "start work");
+                logger.warn(Thread.currentThread() + "start work");
                 urlVec.addAll(resultUrlVec);
             }
 
             logger.info(Thread.currentThread() + "end work, " + urlVec.size() + "links");
         }
 
-        private void fork() throws IOException {
+        private void fork() throws IOException, NoSuchAlgorithmException {
             Link cur;
 
             while ((cur = urlVec.pollFirst()) != null) {
@@ -193,7 +288,7 @@ public class WebsiteParser extends Thread { //TODO DELETE
             }
         }
 
-        private void parseUrlAndPublishPage(Link url) throws IOException {
+        private void parseUrlAndPublishPage(Link url) throws IOException, NoSuchAlgorithmException {
             int level = url.GetLevel() + 1;
 
             Document doc = Jsoup.connect(url.GetUrl()).get();
@@ -212,17 +307,20 @@ public class WebsiteParser extends Thread { //TODO DELETE
                     continue;
                 }
 
-                rmqChan.basicPublish("", URL_QUEUE_NAME, null, link.attr("abs:href").getBytes(StandardCharsets.UTF_8));
+                Link l = new Link(link.attr("abs:href"), level);
+                if (!NewsHeadlineExists(elcClient, l.GetId())) {
+                    rmqChan.basicPublish("", URL_QUEUE_NAME, null, link.attr("abs:href").getBytes(StandardCharsets.UTF_8));
+                    resultUrlVec.add(l);
+                }
 
-                resultUrlVec.add(new Link(link.attr("abs:href"), level));
                 if (level <= this.depth_count) {
-                    urlVec.add(new Link(link.attr("abs:href"), level));
+                    urlVec.add(l);
                 }
             }
         }
     }
 
-    public void runLinkCatcher(int depth, String inputBaseUrl) throws IOException, TimeoutException {
+    public void runLinkCatcher(int depth, String inputBaseUrl) throws IOException, TimeoutException, NoSuchAlgorithmException {
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost(RMQ_HOST_NAME);
         factory.setPort(RMQ_PORT);
@@ -244,7 +342,7 @@ public class WebsiteParser extends Thread { //TODO DELETE
     private static class htmlParser {
         private CloseableHttpClient client = null;
         private static volatile  Map<String, Document> docVec;
-        private static final Logger logger = LogManager.getLogger(htmlParser.class);
+        private static final Logger logger = LoggerFactory.getLogger(htmlParser.class);
 
         public htmlParser(Map<String, Document> docVec) {
             htmlParser.docVec = docVec;
@@ -370,7 +468,7 @@ public class WebsiteParser extends Thread { //TODO DELETE
 
         int responceWaitCount = 0;
 
-        final int retryCount = 20;
+        final int retryCount = 5;
 
         while (responceWaitCount<retryCount) {
             AMQP.Queue.DeclareOk response = channel.queueDeclarePassive(URL_QUEUE_NAME);
@@ -394,7 +492,7 @@ public class WebsiteParser extends Thread { //TODO DELETE
     private static class elkProducer {
         private Channel rmqChan = null;
         private final ObjectMapper mapper = new ObjectMapper();
-        private static final Logger logger = LogManager.getLogger(elkProducer.class);
+        private static final Logger logger = LoggerFactory.getLogger(elkProducer.class);
 
         public elkProducer(Channel channel) {
             rmqChan = channel;
@@ -407,7 +505,7 @@ public class WebsiteParser extends Thread { //TODO DELETE
                 for (Map.Entry<String, Document> entry : docVec.entrySet()) {
                     mapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
                     // parsePrintNews(entry.getKey(), entry.getValue());   // dev
-                    parseProduceToElk(entry.getKey(), entry.getValue()); // TODO prod
+                    parseProduceToElk(entry.getKey(), entry.getValue());
                 }
                 Thread.sleep(500);
             }
@@ -451,6 +549,8 @@ public class WebsiteParser extends Thread { //TODO DELETE
                 newsHeadline.SetDate(iso8601String);
 
                 newsHeadline.SetURL(url);
+                newsHeadline.SetId();
+
                 rmqChan.basicPublish("", DATA_QUEUE_NAME, null, mapper.writeValueAsBytes(newsHeadline));
             } catch (Exception e) {
                 logger.error(String.valueOf(e));
@@ -481,112 +581,12 @@ public class WebsiteParser extends Thread { //TODO DELETE
     private static class elcConsumer {
         private final ObjectMapper mapper = new ObjectMapper();
         private final ElasticsearchClient elcClient;
-        private static final Logger logger = LogManager.getLogger(elcConsumer.class);
+        private static final Logger logger = LoggerFactory.getLogger(elcConsumer.class);
 
         public elcConsumer() throws IOException {
             ElasticClient ec = new ElasticClient(SERVER_URL, API_KEY);
             elcClient = ec.elasticRestClient();
             mapper.registerModule(new JodaModule());
-        }
-
-        public static class ElasticClient {
-
-            private final String serverUrl;
-            private final String apiKey;
-            
-            public ElasticClient(String serverUrl, String apiKey) {
-                this.serverUrl=serverUrl;
-                this.apiKey=apiKey;
-            }
-
-            public ElasticsearchClient elasticRestClient() throws IOException {
-
-                // Create the low-level client
-                RestClient restClient = RestClient
-                        .builder(HttpHost.create(serverUrl))
-                        .setDefaultHeaders(new Header[]{
-                                new BasicHeader("Authorization", "ApiKey " + apiKey)
-                        })
-                        .build();
-
-                // The transport layer of the Elasticsearch client requires a json object mapper to
-                // define how to serialize/deserialize java objects. The mapper can be customized by adding
-                // modules, for example since the Article and Comment object both have Instant fields, the
-                // JavaTimeModule is added to provide support for java 8 Time classes, which the mapper itself does
-                // not support.
-                ObjectMapper mapper = JsonMapper.builder()
-                        .addModule(new JavaTimeModule())
-                        .build();
-
-                // Create the transport with the Jackson mapper
-                ElasticsearchTransport transport = new RestClientTransport(
-                        restClient, new JacksonJsonpMapper(mapper));
-
-                // Create the API client
-                ElasticsearchClient esClient = new ElasticsearchClient(transport);
-
-                // Creating the indexes
-                createIndexWithDateMappingHeadlines(esClient);
-
-                return esClient;
-            }
-
-            private void createIndexWithDateMappingHeadlines(ElasticsearchClient esClient) throws IOException {
-                synchronized (indexCreationLock) {
-                    BooleanResponse indexRes = esClient.indices().exists(ex -> ex.index(WebsiteParser.NEWS_HEADLINES_INDEX_NAME));
-                    if (!indexRes.value()) {
-                        esClient.indices().create(c -> c
-                                .index(WebsiteParser.NEWS_HEADLINES_INDEX_NAME)
-                                .mappings(m -> m
-                                        .properties("header", p -> p.keyword(d -> d))
-                                        .properties("body", p -> p.keyword(d -> d))
-                                        .properties("author", p -> p.keyword(d -> d))
-                                        .properties("URL", p -> p.keyword(d -> d))
-                                        .properties("date", p -> p
-                                                .date(d -> d.format("strict_date_optional_time")))
-                                ));
-
-                    }
-                }
-            }
-        }
-
-        private boolean newsHeadlineExists(NewsHeadline newsHeadline) throws IOException {
-            SearchResponse<NewsHeadline> response = elcClient.search(s -> s
-                            .index(NEWS_HEADLINES_INDEX_NAME)
-                            .query(q -> q
-                                    .match(t -> t
-                                            .field("header")
-                                            .query(newsHeadline.GetHeader())
-                                    )
-                            )
-                            .query(q -> q
-                                    .match(t -> t
-                                            .field("author")
-                                            .query(newsHeadline.GetAuthor())
-                                    )
-                            )
-                            .query(q -> q
-                                    .match(t -> t
-                                            .field("URL")
-                                            .query(newsHeadline.GetURL())
-                                    )
-                            ),
-                    NewsHeadline.class
-            );
-
-            TotalHits total = response.hits().total();
-
-//            boolean isExactResult = total.relation() == TotalHitsRelation.Eq;
-//
-//            List<Hit<NewsHeadline>> hits = response.hits().hits();
-//            for (Hit<NewsHeadline> hit: hits) {
-//                NewsHeadline headline = hit.source();
-//                logger.indexLog(LOGGER_LEVEL_INFO, "Found product " + headline.GetHeader() + ", score " + hit.score());
-//            }
-
-            assert total != null;
-            return total.value() > 0;
         }
 
         public void consume(String msg) throws IOException {
@@ -606,7 +606,9 @@ public class WebsiteParser extends Thread { //TODO DELETE
 
                 nh.SetURL(newsHeadlineJsonNode.get("URL").asText());
 
-                if (!newsHeadlineExists(nh)) {
+                nh.SetId();
+
+                if (!NewsHeadlineExists(elcClient, nh.GetId())) {
                     IndexRequest<NewsHeadline> indexReq = IndexRequest.of((id -> id
                             .index(NEWS_HEADLINES_INDEX_NAME)
                             .refresh(Refresh.WaitFor)
@@ -624,7 +626,9 @@ public class WebsiteParser extends Thread { //TODO DELETE
                     }
                 }
             } catch (IOException e) {
-                logger.error(e);
+                logger.error(String.valueOf(e));
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException(e);
             }
 
             logger.info(Thread.currentThread() + "stop");
@@ -663,7 +667,7 @@ public class WebsiteParser extends Thread { //TODO DELETE
 
         int responceWaitCount = 0;
 
-        final int retryCount = 20;
+        final int retryCount = 100;
 
         while (responceWaitCount<retryCount) {
             AMQP.Queue.DeclareOk response = channel.queueDeclarePassive(DATA_QUEUE_NAME);
@@ -682,7 +686,7 @@ public class WebsiteParser extends Thread { //TODO DELETE
             channel.close();
             connection.close();
         } catch (IOException | TimeoutException e) {
-            logger.error(e);
+            logger.error(String.valueOf(e));
         }
     }
 

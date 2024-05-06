@@ -38,6 +38,8 @@ services:
     ports:
       - "9200:9200"
       - "9300:9300"
+    networks:
+      - my_network
 
   kibana:
     container_name: kibana
@@ -50,30 +52,33 @@ services:
       - "5601:5601"
     depends_on:
       - elasticsearch
+    networks:
+      - my_network
 
   filebeat:
     container_name: filebeat
     image: docker.elastic.co/beats/filebeat:7.17.19
     volumes:
       - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml
-#      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-#      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./../logs:/var/lib/docker/containers/website-parser
+    depends_on:
+      - elasticsearch
+      - logstash
+    networks:
+      - my_network
+
+  logstash:
+    container_name: logstash
+    image: docker.elastic.co/logstash/logstash:7.17.19
+    volumes:
+      - ./logstash/config:/usr/share/logstash/config
+      - ./logstash/pipeline:/usr/share/logstash/pipeline
+    ports:
+      - "5044:5044"
     depends_on:
       - elasticsearch
     networks:
       - my_network
-
-#  logstash:
-#    container_name: logstash
-#    build:
-#      context: ./logstash
-#    volumes:
-#      - ./logstash/config:/usr/share/logstash/config
-#      - ./logstash/pipeline:/usr/share/logstash/pipeline
-#    ports:
-#      - "5044:5044"
-#    depends_on:
-#      - elasticsearch
 
 #  website-parser:
 #    image: maven-image

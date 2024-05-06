@@ -1,12 +1,19 @@
 package entities;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.joda.time.DateTime;
 
-import java.util.Date;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.Objects;
 
 public class NewsHeadline {
+    @JsonProperty("id")
+    private String id;
+
     @JsonProperty("header")
     private String header;
 
@@ -22,6 +29,10 @@ public class NewsHeadline {
     @JsonProperty("URL")
     private String URL;
 
+
+    public String GetId() {
+        return id;
+    }
     public String GetHeader() {
         return header;
     }
@@ -41,7 +52,15 @@ public class NewsHeadline {
     public String GetURL() {
         return URL;
     }
-
+    public void SetId() throws NoSuchAlgorithmException {
+        if (Objects.equals(URL, "")) {
+            throw new RuntimeException("hash source is empty");
+        }
+        byte[] bytesOfMessage = (URL).getBytes(StandardCharsets.UTF_8);
+        MessageDigest md = MessageDigest.getInstance("MD5");
+        byte[] theMD5digest = md.digest(bytesOfMessage);
+        this.id = Arrays.toString(theMD5digest);
+    }
     public void SetHeader(String header) {
         this.header = header;
     }

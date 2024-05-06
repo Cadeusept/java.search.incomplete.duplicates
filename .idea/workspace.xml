@@ -4,19 +4,21 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="eb6331d8-d743-4170-b4a4-2ba7a2547da3" name="Changes" comment="fix: added logging inside elastic">
-      <change afterPath="$PROJECT_DIR$/deployment/filebeat/filebeat.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/deployment/logstash/Dockerfile" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/deployment/logstash/config/logstash.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/deployment/logstash/pipeline/java_logs.conf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/log4j.properties" afterDir="false" />
+    <list default="true" id="eb6331d8-d743-4170-b4a4-2ba7a2547da3" name="Changes" comment="feat: added logging into elasticsearch">
+      <change afterPath="$PROJECT_DIR$/src/main/resources/log4j2.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/deployment/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/deployment/docker-compose.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deployment/filebeat/filebeat.yml" beforeDir="false" afterPath="$PROJECT_DIR$/deployment/filebeat/filebeat.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deployment/logstash/Dockerfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/deployment/logstash/pipeline/java_logs.conf" beforeDir="false" afterPath="$PROJECT_DIR$/deployment/logstash/pipeline/java_logs.conf" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/entities/Log.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/entities/Log.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/entities/Link.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/entities/Link.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/entities/Log.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/entities/NewsHeadline.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/entities/NewsHeadline.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/parser/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/parser/Main.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/parser/WebsiteParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/parser/WebsiteParser.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/logback.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/log4j.properties" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -49,35 +51,41 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Application.Main.executor&quot;: &quot;Run&quot;,
-    &quot;Maven. [clear].executor&quot;: &quot;Run&quot;,
-    &quot;Maven. [compile,exec:java...].executor&quot;: &quot;Run&quot;,
-    &quot;Maven.website-parser [clean,compile].executor&quot;: &quot;Run&quot;,
-    &quot;Maven.website-parser [clean,install].executor&quot;: &quot;Run&quot;,
-    &quot;Maven.website-parser [clean,main].executor&quot;: &quot;Run&quot;,
-    &quot;Maven.website-parser [clean,package].executor&quot;: &quot;Run&quot;,
-    &quot;Maven.website-parser [clean,test].executor&quot;: &quot;Run&quot;,
-    &quot;Maven.website-parser [clean,validate,compile...].executor&quot;: &quot;Run&quot;,
-    &quot;Maven.website-parser [clean].executor&quot;: &quot;Run&quot;,
-    &quot;Maven.website-parser [clear].executor&quot;: &quot;Run&quot;,
-    &quot;Maven.website-parser [compile,exec:java...].executor&quot;: &quot;Run&quot;,
-    &quot;Maven.website-parser [compile,exec:java].executor&quot;: &quot;Run&quot;,
-    &quot;Maven.website-parser [compile].executor&quot;: &quot;Run&quot;,
-    &quot;Maven.website-parser [install].executor&quot;: &quot;Run&quot;,
-    &quot;Maven.website-parser [package].executor&quot;: &quot;Run&quot;,
-    &quot;Maven.website-parser.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;parser&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;reference.settings.project.maven.repository.indices&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Application.Main.executor": "Run",
+    "Maven. [clear].executor": "Run",
+    "Maven. [compile,exec:java...].executor": "Run",
+    "Maven.website-parser [clean,compile].executor": "Run",
+    "Maven.website-parser [clean,install].executor": "Run",
+    "Maven.website-parser [clean,main].executor": "Run",
+    "Maven.website-parser [clean,package].executor": "Run",
+    "Maven.website-parser [clean,test].executor": "Run",
+    "Maven.website-parser [clean,validate,compile...].executor": "Run",
+    "Maven.website-parser [clean].executor": "Run",
+    "Maven.website-parser [clear].executor": "Run",
+    "Maven.website-parser [compile,exec:java...].executor": "Run",
+    "Maven.website-parser [compile,exec:java].executor": "Run",
+    "Maven.website-parser [compile].executor": "Run",
+    "Maven.website-parser [install].executor": "Run",
+    "Maven.website-parser [package].executor": "Run",
+    "Maven.website-parser.executor": "Run",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "parser",
+    "kotlin-language-version-configured": "true",
+    "project.structure.last.edited": "Modules",
+    "project.structure.proportion": "0.0",
+    "project.structure.side.proportion": "0.0",
+    "settings.editor.selected.configurable": "reference.projectsettings.compiler.annotationProcessors"
   }
-}</component>
+}]]></component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/src/main/java/parser" />
+    </key>
+  </component>
   <component name="RunManager">
     <configuration name="Main" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="parser.Main" />
@@ -226,7 +234,15 @@
       <option name="project" value="LOCAL" />
       <updated>1714683157078</updated>
     </task>
-    <option name="localTasksCounter" value="15" />
+    <task id="LOCAL-00015" summary="feat: added logging into elasticsearch">
+      <option name="closed" value="true" />
+      <created>1714848097763</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1714848097763</updated>
+    </task>
+    <option name="localTasksCounter" value="16" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -242,6 +258,17 @@
     <MESSAGE value="feat: added readme and code improvements" />
     <MESSAGE value="fix: added search of added news" />
     <MESSAGE value="fix: added logging inside elastic" />
-    <option name="LAST_COMMIT_MESSAGE" value="fix: added logging inside elastic" />
+    <MESSAGE value="feat: added logging into elasticsearch" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: added logging into elasticsearch" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <breakpoint enabled="true" type="java-exception">
+          <properties class="com.rabbitmq.client.AlreadyClosedException" package="com.rabbitmq.client" />
+          <option name="timeStamp" value="1" />
+        </breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>
