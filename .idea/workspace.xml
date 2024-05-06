@@ -4,21 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="eb6331d8-d743-4170-b4a4-2ba7a2547da3" name="Changes" comment="feat: added logging into elasticsearch">
-      <change afterPath="$PROJECT_DIR$/src/main/resources/log4j2.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+    <list default="true" id="eb6331d8-d743-4170-b4a4-2ba7a2547da3" name="Changes" comment="feat: added logging into elasticsearch&lt;-logstash&lt;-filebeat and dashboards">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/deployment/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/deployment/docker-compose.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/deployment/filebeat/filebeat.yml" beforeDir="false" afterPath="$PROJECT_DIR$/deployment/filebeat/filebeat.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/deployment/logstash/Dockerfile" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/deployment/logstash/pipeline/java_logs.conf" beforeDir="false" afterPath="$PROJECT_DIR$/deployment/logstash/pipeline/java_logs.conf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/entities/Link.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/entities/Link.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/entities/Log.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/entities/NewsHeadline.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/entities/NewsHeadline.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/parser/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/parser/Main.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/parser/WebsiteParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/parser/WebsiteParser.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/log4j.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -242,7 +230,15 @@
       <option name="project" value="LOCAL" />
       <updated>1714848097763</updated>
     </task>
-    <option name="localTasksCounter" value="16" />
+    <task id="LOCAL-00016" summary="feat: added logging into elasticsearch&lt;-logstash&lt;-filebeat and dashboards">
+      <option name="closed" value="true" />
+      <created>1715034716130</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1715034716130</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -259,7 +255,8 @@
     <MESSAGE value="fix: added search of added news" />
     <MESSAGE value="fix: added logging inside elastic" />
     <MESSAGE value="feat: added logging into elasticsearch" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: added logging into elasticsearch" />
+    <MESSAGE value="feat: added logging into elasticsearch&lt;-logstash&lt;-filebeat and dashboards" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: added logging into elasticsearch&lt;-logstash&lt;-filebeat and dashboards" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

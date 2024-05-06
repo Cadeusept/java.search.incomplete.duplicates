@@ -4,10 +4,13 @@
 - RabbitMQ *3.10.7*
 - Elasticsearch *7.17.19*
 - Kibana *7.17.19*
+- Logstash *7.17.19*
+- Filebeat *7.17.19*
 ## Work algorythm
 ### 1. "Link Catcher" service
 - Parsing website, catching links from base page
-- Valid links with news are being sent to RMQ url queue
+- If already in elastic, continue
+- New links with news are being sent to RMQ url queue
 ### 2. "Website Parser" service
 - Getting links from url queue
 - Check links into hashmap
