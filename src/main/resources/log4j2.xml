@@ -6,6 +6,12 @@
             <PatternLayout pattern="%d{yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS'Z'} [%t] %-5p %c %x - %m%n"/>
         </Console>
 
+        <!-- Debug console appender configuration -->
+        <Console name="DebugConsole" target="SYSTEM_OUT">
+            <ThresholdFilter level="DEBUG" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout pattern="%d{yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS'Z'} [%t] %-5p %c %x - %m%n"/>
+        </Console>
+
         <!-- File appender configuration -->
         <RollingFile name="File" fileName="/Users/cadeusept/Documents/Progs/Java/website-parser/logs/main.log"
                      filePattern="/Users/cadeusept/Documents/Progs/Java/website-parser/logs/main-%i.log">
@@ -23,5 +29,10 @@
             <AppenderRef ref="Console"/>
             <AppenderRef ref="File"/>
         </Root>
+
+        <!-- Debug logger configuration -->
+        <Logger name="parser" level="DEBUG" additivity="false">
+            <AppenderRef ref="DebugConsole"/>
+        </Logger>
     </Loggers>
 </Configuration>

@@ -31,8 +31,6 @@ import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicHeader;
-//import org.apache.logging.log4j.LoggerFactory;
-//import org.apache.logging.log4j.Logger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.elasticsearch.client.RestClient;
@@ -131,7 +129,7 @@ public class WebsiteParser extends Thread { //TODO DELETE
         }
     }
 
-    public static boolean NewsHeadlineExists( ElasticsearchClient elcClient, String id) throws IOException {
+    public static boolean NewsHeadlineNotExist(ElasticsearchClient elcClient, String id) throws IOException {
         SearchResponse<NewsHeadline> response = elcClient.search(s -> s
                         .index(NEWS_HEADLINES_INDEX_NAME)
                         .query(q -> q
@@ -154,101 +152,8 @@ public class WebsiteParser extends Thread { //TODO DELETE
 //            }
 
         assert total != null;
-        return total.value() > 0;
+        return total.value() <= 0;
     }
-
-
-    //private final logIndexer logger = new logIndexer();
-
-    //public WebsiteParser() throws IOException {}
-
-//    private static class logIndexer {
-//        private final ObjectMapper mapper = new ObjectMapper();
-//        private ElasticsearchClient elcClient;
-//        public logIndexer() throws IOException {
-//            logIndexer.ElasticLoggingClient ec = new ElasticLoggingClient(SERVER_URL, API_KEY);
-//            elcClient = ec.elasticRestClient();
-//            mapper.registerModule(new JodaModule());
-//        }
-//
-//        public class ElasticLoggingClient {
-//
-//            private String serverUrl;
-//            private String apiKey;
-//
-//            public ElasticLoggingClient(String serverUrl, String apiKey) throws IOException {
-//                this.serverUrl=serverUrl;
-//                this.apiKey=apiKey;
-//            }
-//
-//            public ElasticsearchClient elasticRestClient() throws IOException {
-//
-//                // Create the low-level client
-//                RestClient restClient = RestClient
-//                        .builder(HttpHost.create(serverUrl))
-//                        .setDefaultHeaders(new Header[]{
-//                                new BasicHeader("Authorization", "ApiKey " + apiKey)
-//                        })
-//                        .build();
-//
-//                // The transport layer of the Elasticsearch client requires a json object mapper to
-//                // define how to serialize/deserialize java objects. The mapper can be customized by adding
-//                // modules, for example since the Article and Comment object both have Instant fields, the
-//                // JavaTimeModule is added to provide support for java 8 Time classes, which the mapper itself does
-//                // not support.
-//                ObjectMapper mapper = JsonMapper.builder()
-//                        .addModule(new JavaTimeModule())
-//                        .build();
-//
-//                // Create the transport with the Jackson mapper
-//                ElasticsearchTransport transport = new RestClientTransport(
-//                        restClient, new JacksonJsonpMapper(mapper));
-//
-//                // Create the API client
-//                ElasticsearchClient esClient = new ElasticsearchClient(transport);
-//
-//                // Creating the indexes
-//                createIndexWithDateMappingLogs(esClient, LOGS_INDEX_NAME);
-//
-//                return esClient;
-//            }
-//
-//            private void createIndexWithDateMappingLogs(ElasticsearchClient esClient, String index) throws IOException {
-//                synchronized (indexCreationLock) {
-//                    BooleanResponse indexRes = esClient.indices().exists(ex -> ex.index(index));
-//                    if (!indexRes.value()) {
-//                        esClient.indices().create(c -> c
-//                                .index(index)
-//                                .mappings(m -> m
-//                                        .properties("created_at", p -> p
-//                                                .date(d -> d.format("strict_date_optional_time")))
-//                                        .properties("level", p -> p.keyword(d -> d))
-//                                        .properties("message", p -> p.keyword(d -> d))
-//                                ));
-//
-//                    }
-//                }
-//            }
-//        }
-//
-//        public void indexLog(String level, String msg) throws IOException {
-//            try {
-//                Log lm = new Log(level, msg);
-//
-//                System.out.println(lm.GetCreatedAt() + " " + lm.GetLevel() + " " + lm.GetMessage());
-//
-//                IndexRequest<Log> indexReq = IndexRequest.of((id -> id
-//                        .index(LOGS_INDEX_NAME)
-//                        .refresh(Refresh.WaitFor)
-//                        .document(lm)));
-//
-//                IndexResponse indexResponse = elcClient.index(indexReq);
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//        }
-//    }
-
 
     private static class linkCatcher {
         private final String baseUrl;
@@ -273,11 +178,11 @@ public class WebsiteParser extends Thread { //TODO DELETE
         public void Start() throws IOException, NoSuchAlgorithmException {
             for (int i = 0; i < depth_count; ++i) {
                 fork();
-                logger.warn(Thread.currentThread() + "start work");
+                logger.debug(Thread.currentThread() + "start work");
                 urlVec.addAll(resultUrlVec);
             }
 
-            logger.info(Thread.currentThread() + "end work, " + urlVec.size() + "links");
+            logger.debug(Thread.currentThread() + "end work, " + urlVec.size() + "links");
         }
 
         private void fork() throws IOException, NoSuchAlgorithmException {
@@ -294,22 +199,28 @@ public class WebsiteParser extends Thread { //TODO DELETE
             Document doc = Jsoup.connect(url.GetUrl()).get();
             Elements links = doc.select("a[href]");
 
+            String newUrl;
             for (Element link : links) {
+                newUrl = link.attr("abs:href");
                 if (
-                        !link.attr("abs:href").startsWith(baseUrl + "/politics/2024/") &&
-                                !link.attr("abs:href").startsWith(baseUrl + "/incident/2024/") &&
-                                !link.attr("abs:href").startsWith(baseUrl + "/culture/2024/") &&
-                                !link.attr("abs:href").startsWith(baseUrl + "/social/2024/") &&
-                                !link.attr("abs:href").startsWith(baseUrl + "/economics/2024/") &&
-                                !link.attr("abs:href").startsWith(baseUrl + "/science/2024/") &&
-                                !link.attr("abs:href").startsWith(baseUrl + "/sport/2024/")
+                        !newUrl.startsWith(baseUrl + "/politics/2024/") &&
+                                !newUrl.startsWith(baseUrl + "/incident/2024/") &&
+                                !newUrl.startsWith(baseUrl + "/culture/2024/") &&
+                                !newUrl.startsWith(baseUrl + "/social/2024/") &&
+                                !newUrl.startsWith(baseUrl + "/economics/2024/") &&
+                                !newUrl.startsWith(baseUrl + "/science/2024/") &&
+                                !newUrl.startsWith(baseUrl + "/sport/2024/")
                 ) {
                     continue;
                 }
 
-                Link l = new Link(link.attr("abs:href"), level);
-                if (!NewsHeadlineExists(elcClient, l.GetId())) {
-                    rmqChan.basicPublish("", URL_QUEUE_NAME, null, link.attr("abs:href").getBytes(StandardCharsets.UTF_8));
+                if (newUrl.endsWith("#")) {
+                    newUrl = newUrl.substring(0, newUrl.length() - 1);
+                }
+
+                Link l = new Link(newUrl, level);
+                if (NewsHeadlineNotExist(elcClient, l.GetId())) {
+                    rmqChan.basicPublish("", URL_QUEUE_NAME, null, newUrl.getBytes(StandardCharsets.UTF_8));
                     resultUrlVec.add(l);
                 }
 
@@ -371,9 +282,9 @@ public class WebsiteParser extends Thread { //TODO DELETE
                 request.setConfig(requestConfig);
                 CloseableHttpResponse response = null;
                 try {
-                    logger.info(Thread.currentThread() + "start");
+                    logger.debug(Thread.currentThread() + "start");
                     response = client.execute(request);
-                    logger.info(Thread.currentThread() + "stop");
+                    logger.debug(Thread.currentThread() + "stop");
                     code = response.getStatusLine().getStatusCode();
                     if (code == 404) {
                         logger.error("error get url " + url + " code " + code);
@@ -478,7 +389,7 @@ public class WebsiteParser extends Thread { //TODO DELETE
             } else {
                 Thread.sleep(5000);
                 responceWaitCount++;
-                logger.info("Waiting for messages in "+ URL_QUEUE_NAME +", " + (retryCount-responceWaitCount) * 5 + " seconds until shutdown" + Thread.currentThread());
+                logger.debug("Waiting for messages in "+ URL_QUEUE_NAME +", " + (retryCount-responceWaitCount) * 5 + " seconds until shutdown" + Thread.currentThread());
             }
         }
 
@@ -500,7 +411,7 @@ public class WebsiteParser extends Thread { //TODO DELETE
 
         public void ParsePublishNews(Map<String, Document> docVec) throws InterruptedException, IOException {
             if (docVec.isEmpty()) {
-                logger.info("empty map");
+                logger.warn("empty map");
             } else {
                 for (Map.Entry<String, Document> entry : docVec.entrySet()) {
                     mapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
@@ -590,7 +501,7 @@ public class WebsiteParser extends Thread { //TODO DELETE
         }
 
         public void consume(String msg) throws IOException {
-            logger.info(Thread.currentThread() + "start");
+            logger.debug(Thread.currentThread() + "start");
 
             try {
                 NewsHeadline nh = new NewsHeadline();
@@ -608,7 +519,7 @@ public class WebsiteParser extends Thread { //TODO DELETE
 
                 nh.SetId();
 
-                if (!NewsHeadlineExists(elcClient, nh.GetId())) {
+                if (NewsHeadlineNotExist(elcClient, nh.GetId())) {
                     IndexRequest<NewsHeadline> indexReq = IndexRequest.of((id -> id
                             .index(NEWS_HEADLINES_INDEX_NAME)
                             .refresh(Refresh.WaitFor)
@@ -622,7 +533,7 @@ public class WebsiteParser extends Thread { //TODO DELETE
                         logger.info("Document indexed successfully!");
                     } else {
                         // Document indexing failed
-                        System.err.println("Error occurred during indexing!");
+                        logger.error("Error occurred during indexing!");
                     }
                 }
             } catch (IOException e) {
@@ -631,7 +542,7 @@ public class WebsiteParser extends Thread { //TODO DELETE
                 throw new RuntimeException(e);
             }
 
-            logger.info(Thread.currentThread() + "stop");
+            logger.debug(Thread.currentThread() + "stop");
         }
     }
 
@@ -677,7 +588,7 @@ public class WebsiteParser extends Thread { //TODO DELETE
             } else {
                 Thread.sleep(5000);
                 responceWaitCount++;
-                logger.info("Waiting for messages in "+ DATA_QUEUE_NAME +", " + (retryCount-responceWaitCount) * 5 + " seconds until shutdown" + Thread.currentThread());
+                logger.debug("Waiting for messages in "+ DATA_QUEUE_NAME +", " + (retryCount-responceWaitCount) * 5 + " seconds until shutdown" + Thread.currentThread());
             }
         }
 
