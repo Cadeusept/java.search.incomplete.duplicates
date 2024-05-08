@@ -189,7 +189,7 @@ public class Main {
         for (Hit<NewsHeadline> hit: hits) {
             NewsHeadline newsHeadline = hit.source();
             assert newsHeadline != null;
-            logger.debug("Found headline. Author: " + newsHeadline.GetAuthor() + " Headline: " + newsHeadline.GetHeader() + " URL: " + newsHeadline.GetURL() + "_id: " + hit.id() + " score: " + hit.score());
+            logger.debug("Found headline. Author: " + newsHeadline.GetAuthor() + " Headline: " + newsHeadline.GetHeader() + " URL: " + newsHeadline.GetURL() + " _id: " + hit.id() + " score: " + hit.score());
         }
         System.out.println();
     }
