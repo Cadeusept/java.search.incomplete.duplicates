@@ -4,10 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="eb6331d8-d743-4170-b4a4-2ba7a2547da3" name="Changes" comment="feat: added AND and OR searching">
+    <list default="true" id="eb6331d8-d743-4170-b4a4-2ba7a2547da3" name="Changes" comment="fix: fixed AND and OR searching">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/parser/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/parser/Main.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/parser/WebsiteParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/parser/WebsiteParser.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -272,7 +271,15 @@
       <option name="project" value="LOCAL" />
       <updated>1715117740712</updated>
     </task>
-    <option name="localTasksCounter" value="21" />
+    <task id="LOCAL-00021" summary="fix: fixed AND and OR searching">
+      <option name="closed" value="true" />
+      <created>1715152649406</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1715152649406</updated>
+    </task>
+    <option name="localTasksCounter" value="22" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -291,7 +298,8 @@
     <MESSAGE value="feat: added logging into elasticsearch" />
     <MESSAGE value="feat: added logging into elasticsearch&lt;-logstash&lt;-filebeat and dashboards" />
     <MESSAGE value="feat: added AND and OR searching" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: added AND and OR searching" />
+    <MESSAGE value="fix: fixed AND and OR searching" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix: fixed AND and OR searching" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

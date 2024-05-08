@@ -8,8 +8,12 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.InlineScript;
+import co.elastic.clients.elasticsearch._types.Script;
+import co.elastic.clients.elasticsearch._types.ScriptBuilders;
 import co.elastic.clients.elasticsearch._types.query_dsl.MatchQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import co.elastic.clients.elasticsearch._types.query_dsl.ScriptQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.TermQuery;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
@@ -92,7 +96,7 @@ public class Main {
 
         Query byAuthorMatch = MatchQuery.of(m -> m
                 .field("author")
-                .query("фото")
+                .query("Денис")
         )._toQuery();
 
         Query byHeaderSevastopolMatch = MatchQuery.of(m -> m
@@ -115,6 +119,7 @@ public class Main {
                 .query("Севастополь")
         )._toQuery();
 
+        // AND
         SearchResponse<NewsHeadline> andResponse = elcClient.search(s -> s
                         .index(NEWS_HEADLINES_INDEX_NAME)
                         .query(q -> q
@@ -128,6 +133,7 @@ public class Main {
         List<Hit<NewsHeadline>> andHits = andResponse.hits().hits();
         outputHits(andHits);
 
+        // OR
         SearchResponse<NewsHeadline> orResponse = elcClient.search(s -> s
                         .index(NEWS_HEADLINES_INDEX_NAME)
                         .query(q -> q
@@ -140,6 +146,40 @@ public class Main {
 
         List<Hit<NewsHeadline>> orHits = orResponse.hits().hits();
         outputHits(orHits);
+
+        // SCRIPT
+//        InlineScript.Builder inlineScriptBuilder = new InlineScript.Builder();
+//        InlineScript script = inlineScriptBuilder.source("doc['header'].value + ' ' + doc['author'].value").build();
+//
+//        SearchResponse scriptResponse = elcClient.search(s -> s
+//                        .index(NEWS_HEADLINES_INDEX_NAME)
+//                        .query(q -> q
+//                                .script(sq -> sq.script(is -> is
+//                                        .inline(script)
+//                                ))
+//                        ).size(10),
+//                NewsHeadline.class
+//        );
+//
+//        scriptResponse.hits().hits().forEach(hit -> {
+//            // Process each hit document
+//            System.out.println(hit.toString());
+//        });
+
+
+        // MULTIGET
+//        SearchResponse<NewsHeadline> multiGetResponse = elcClient.search(s -> s
+//                        .index(NEWS_HEADLINES_INDEX_NAME)
+//                        .query(q -> q
+//                                .multiMatch(b -> b.
+//                                        .should(byBodySevastopolMatch, byHeaderYaltaMatch)
+//                                )
+//                        ).size(10),
+//                NewsHeadline.class
+//        );
+//
+//        List<Hit<NewsHeadline>> scriptHits = multiGetResponse.hits().hits();
+//        outputHits(scriptHits);
     }
 
     private static void outputHits(List<Hit<NewsHeadline>> hits) {
@@ -149,7 +189,7 @@ public class Main {
         for (Hit<NewsHeadline> hit: hits) {
             NewsHeadline newsHeadline = hit.source();
             assert newsHeadline != null;
-            logger.debug("Found headline. Author: " + newsHeadline.GetAuthor() + " Headline: " + newsHeadline.GetHeader() + " URL: " + newsHeadline.GetURL() + " score: " + hit.score());
+            logger.debug("Found headline. Author: " + newsHeadline.GetAuthor() + " Headline: " + newsHeadline.GetHeader() + " URL: " + newsHeadline.GetURL() + "_id: " + hit.id() + " score: " + hit.score());
         }
         System.out.println();
     }
