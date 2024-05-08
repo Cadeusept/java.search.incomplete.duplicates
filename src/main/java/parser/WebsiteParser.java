@@ -116,9 +116,9 @@ public class WebsiteParser extends Thread { //TODO DELETE
                             .index(WebsiteParser.NEWS_HEADLINES_INDEX_NAME)
                             .mappings(m -> m
                                     .properties("id", p -> p.keyword(d -> d))
-                                    .properties("header", p -> p.keyword(d -> d))
+                                    .properties("header", p -> p.text(d -> d))
                                     .properties("body", p -> p.text(d -> d))
-                                    .properties("author", p -> p.keyword(d -> d))
+                                    .properties("author", p -> p.text(d -> d))
                                     .properties("URL", p -> p.keyword(d -> d))
                                     .properties("date", p -> p
                                             .date(d -> d.format("strict_date_optional_time")))

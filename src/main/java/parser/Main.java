@@ -92,17 +92,17 @@ public class Main {
 
         Query byAuthorMatch = MatchQuery.of(m -> m
                 .field("author")
-                .query("Денис Проничев")
+                .query("фото")
         )._toQuery();
 
         Query byHeaderSevastopolMatch = MatchQuery.of(m -> m
                 .field("header")
-                .query("Севас")
+                .query("Севастополь")
         )._toQuery();
 
         Query byHeaderYaltaMatch = MatchQuery.of(m -> m
                 .field("header")
-                .query("Ялт")
+                .query("Ялта")
         )._toQuery();
 
         Query byAuthorTermQuery = new Query.Builder().term( t -> t
@@ -110,23 +110,16 @@ public class Main {
                 .value(v -> v.stringValue("Денис Проничев"))
         ).build();
 
-        Query byHeaderSevastopolTerm = new Query.Builder().term( t -> t
+        Query byBodySevastopolMatch = MatchQuery.of(m -> m
                 .field("body")
-                .value(v -> v.stringValue("Севастополь"))
-        ).build();
-
-        Query byHeaderYaltaTerm = new Query.Builder().term( t -> t
-                .field("header")
-                .value(v -> v.stringValue("Ялт"))
-        ).build();
-
+                .query("Севастополь")
+        )._toQuery();
 
         SearchResponse<NewsHeadline> andResponse = elcClient.search(s -> s
                         .index(NEWS_HEADLINES_INDEX_NAME)
                         .query(q -> q
                                 .bool(b -> b
-                                        .must(byAuthorTermQuery)
-                                        .must(byHeaderSevastopolTerm)
+                                        .must(byBodySevastopolMatch, byAuthorMatch)//, byHeaderSevastopolMatch)
                                 )
                         ).size(10),
                 NewsHeadline.class
@@ -139,9 +132,7 @@ public class Main {
                         .index(NEWS_HEADLINES_INDEX_NAME)
                         .query(q -> q
                                 .bool(b -> b
-                                        .must(byAuthorMatch)
-                                        .should(byHeaderSevastopolMatch)
-                                        .should(byHeaderYaltaMatch)
+                                        .should(byBodySevastopolMatch, byHeaderYaltaMatch)
                                 )
                         ).size(10),
                 NewsHeadline.class
@@ -154,12 +145,12 @@ public class Main {
     private static void outputHits(List<Hit<NewsHeadline>> hits) {
         if (hits.isEmpty()) {
             logger.debug("Empty response");
-            return;
         }
         for (Hit<NewsHeadline> hit: hits) {
             NewsHeadline newsHeadline = hit.source();
             assert newsHeadline != null;
-            logger.debug("Found headline " + newsHeadline.GetAuthor() + " " + newsHeadline.GetHeader() + " " + newsHeadline.GetURL() + ", score " + hit.score());
+            logger.debug("Found headline. Author: " + newsHeadline.GetAuthor() + " Headline: " + newsHeadline.GetHeader() + " URL: " + newsHeadline.GetURL() + " score: " + hit.score());
         }
+        System.out.println();
     }
 }

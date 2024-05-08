@@ -4,11 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="eb6331d8-d743-4170-b4a4-2ba7a2547da3" name="Changes" comment="feat: added logging into elasticsearch&lt;-logstash&lt;-filebeat and dashboards">
+    <list default="true" id="eb6331d8-d743-4170-b4a4-2ba7a2547da3" name="Changes" comment="feat: added AND and OR searching">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/parser/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/parser/Main.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/parser/WebsiteParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/parser/WebsiteParser.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/log4j2.xml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/log4j2.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -25,6 +24,7 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
     <option name="SET_USER_NAME_GLOBALLY" value="false" />
+    <option name="UPDATE_TYPE" value="REBASE" />
   </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
@@ -41,35 +41,35 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Application.Main.executor": "Run",
-    "Maven. [clear].executor": "Run",
-    "Maven. [compile,exec:java...].executor": "Run",
-    "Maven.website-parser [clean,compile].executor": "Run",
-    "Maven.website-parser [clean,install].executor": "Run",
-    "Maven.website-parser [clean,main].executor": "Run",
-    "Maven.website-parser [clean,package].executor": "Run",
-    "Maven.website-parser [clean,test].executor": "Run",
-    "Maven.website-parser [clean,validate,compile...].executor": "Run",
-    "Maven.website-parser [clean].executor": "Run",
-    "Maven.website-parser [clear].executor": "Run",
-    "Maven.website-parser [compile,exec:java...].executor": "Run",
-    "Maven.website-parser [compile,exec:java].executor": "Run",
-    "Maven.website-parser [compile].executor": "Run",
-    "Maven.website-parser [install].executor": "Run",
-    "Maven.website-parser [package].executor": "Run",
-    "Maven.website-parser.executor": "Run",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "parser",
-    "kotlin-language-version-configured": "true",
-    "project.structure.last.edited": "Modules",
-    "project.structure.proportion": "0.0",
-    "project.structure.side.proportion": "0.0",
-    "settings.editor.selected.configurable": "reference.projectsettings.compiler.annotationProcessors"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Application.Main.executor&quot;: &quot;Run&quot;,
+    &quot;Maven. [clear].executor&quot;: &quot;Run&quot;,
+    &quot;Maven. [compile,exec:java...].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.website-parser [clean,compile].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.website-parser [clean,install].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.website-parser [clean,main].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.website-parser [clean,package].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.website-parser [clean,test].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.website-parser [clean,validate,compile...].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.website-parser [clean].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.website-parser [clear].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.website-parser [compile,exec:java...].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.website-parser [compile,exec:java].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.website-parser [compile].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.website-parser [install].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.website-parser [package].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.website-parser.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;parser&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;reference.projectsettings.compiler.annotationProcessors&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$" />
@@ -264,7 +264,15 @@
       <option name="project" value="LOCAL" />
       <updated>1715034981824</updated>
     </task>
-    <option name="localTasksCounter" value="20" />
+    <task id="LOCAL-00020" summary="feat: added AND and OR searching">
+      <option name="closed" value="true" />
+      <created>1715117740712</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1715117740712</updated>
+    </task>
+    <option name="localTasksCounter" value="21" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -282,7 +290,8 @@
     <MESSAGE value="fix: added logging inside elastic" />
     <MESSAGE value="feat: added logging into elasticsearch" />
     <MESSAGE value="feat: added logging into elasticsearch&lt;-logstash&lt;-filebeat and dashboards" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: added logging into elasticsearch&lt;-logstash&lt;-filebeat and dashboards" />
+    <MESSAGE value="feat: added AND and OR searching" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: added AND and OR searching" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
