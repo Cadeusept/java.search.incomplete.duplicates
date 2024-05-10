@@ -2,25 +2,24 @@ package parser;
 
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch._types.InlineScript;
-import co.elastic.clients.elasticsearch._types.Script;
-import co.elastic.clients.elasticsearch._types.ScriptBuilders;
+import co.elastic.clients.elasticsearch._types.aggregations.*;
 import co.elastic.clients.elasticsearch._types.query_dsl.MatchQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
-import co.elastic.clients.elasticsearch._types.query_dsl.ScriptQuery;
-import co.elastic.clients.elasticsearch._types.query_dsl.TermQuery;
+import co.elastic.clients.elasticsearch.core.MgetResponse;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.get.GetResult;
+import co.elastic.clients.elasticsearch.core.mget.MultiGetOperation;
+import co.elastic.clients.elasticsearch.core.mget.MultiGetResponseItem;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 
 import entities.NewsHeadline;
 import jobExecutor.JobExecutor;
-import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.search.SearchHit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,7 +86,7 @@ public class Main {
 
         threadPool.joinAllThreads();
 
-        ExecuteSearchRequests();
+//        ExecuteSearchRequests();
     }
 
     public static void ExecuteSearchRequests() throws IOException {
@@ -96,12 +95,12 @@ public class Main {
 
         Query byAuthorMatch = MatchQuery.of(m -> m
                 .field("author")
-                .query("Денис")
+                .query("Денис Проничев")
         )._toQuery();
 
-        Query byHeaderSevastopolMatch = MatchQuery.of(m -> m
-                .field("header")
-                .query("Севастополь")
+        Query byBodySimferopolMatch = MatchQuery.of(m -> m
+                .field("body")
+                .query("Симферополь")
         )._toQuery();
 
         Query byHeaderYaltaMatch = MatchQuery.of(m -> m
@@ -114,19 +113,14 @@ public class Main {
                 .value(v -> v.stringValue("Денис Проничев"))
         ).build();
 
-        Query byBodySevastopolMatch = MatchQuery.of(m -> m
-                .field("body")
-                .query("Севастополь")
-        )._toQuery();
-
         // AND
         SearchResponse<NewsHeadline> andResponse = elcClient.search(s -> s
                         .index(NEWS_HEADLINES_INDEX_NAME)
                         .query(q -> q
                                 .bool(b -> b
-                                        .must(byBodySevastopolMatch, byAuthorMatch)//, byHeaderSevastopolMatch)
+                                        .must(byBodySimferopolMatch, byAuthorMatch)//, byHeaderSevastopolMatch)
                                 )
-                        ).size(10),
+                        ),
                 NewsHeadline.class
         );
 
@@ -138,9 +132,9 @@ public class Main {
                         .index(NEWS_HEADLINES_INDEX_NAME)
                         .query(q -> q
                                 .bool(b -> b
-                                        .should(byBodySevastopolMatch, byHeaderYaltaMatch)
+                                        .should(byBodySimferopolMatch, byAuthorMatch)
                                 )
-                        ).size(10),
+                        ),
                 NewsHeadline.class
         );
 
@@ -148,38 +142,139 @@ public class Main {
         outputHits(orHits);
 
         // SCRIPT
-//        InlineScript.Builder inlineScriptBuilder = new InlineScript.Builder();
-//        InlineScript script = inlineScriptBuilder.source("doc['header'].value + ' ' + doc['author'].value").build();
-//
-//        SearchResponse scriptResponse = elcClient.search(s -> s
-//                        .index(NEWS_HEADLINES_INDEX_NAME)
-//                        .query(q -> q
-//                                .script(sq -> sq.script(is -> is
-//                                        .inline(script)
-//                                ))
-//                        ).size(10),
-//                NewsHeadline.class
-//        );
-//
-//        scriptResponse.hits().hits().forEach(hit -> {
-//            // Process each hit document
-//            System.out.println(hit.toString());
-//        });
+        SearchResponse<NewsHeadline> scriptResponse = elcClient.search(s -> s
+                        .index(NEWS_HEADLINES_INDEX_NAME)
+                        .query(q -> q
+                                .scriptScore(ss -> ss
+                                        .query(q1 -> q1
+                                                .matchAll(ma -> ma))
+                                        .script(scr -> scr
+                                                .inline(i -> i
+                                                        .source("doc['URL'].value.length()"))))),
+                NewsHeadline.class
+        );
+
+        List<Hit<NewsHeadline>> scriptHits = scriptResponse.hits().hits();
+        outputHits(scriptHits);
 
 
         // MULTIGET
-//        SearchResponse<NewsHeadline> multiGetResponse = elcClient.search(s -> s
-//                        .index(NEWS_HEADLINES_INDEX_NAME)
-//                        .query(q -> q
-//                                .multiMatch(b -> b.
-//                                        .should(byBodySevastopolMatch, byHeaderYaltaMatch)
-//                                )
-//                        ).size(10),
-//                NewsHeadline.class
-//        );
-//
-//        List<Hit<NewsHeadline>> scriptHits = multiGetResponse.hits().hits();
-//        outputHits(scriptHits);
+        MgetResponse<NewsHeadline> mgetResponse = elcClient.mget(mgq -> mgq
+                .index(NEWS_HEADLINES_INDEX_NAME)
+                        .docs(d -> d
+                                .id("arr7Vo8B5aM0OFyPWyIm")
+                                .id("V1q0WY8Bq03dI9uQAZuB")
+                                .id("X7r7Vo8B5aM0OFyPSSL_")),
+
+                NewsHeadline.class
+        );
+        List<NewsHeadline> mgetHits = new ArrayList<>();
+        mgetHits.add(mgetResponse.docs().getFirst().result().source());
+        for (NewsHeadline newsHeadline: mgetHits) {
+            assert newsHeadline != null;
+            logger.debug("Found headline. Author: " + newsHeadline.GetAuthor() + " Headline: " + newsHeadline.GetHeader() + " URL: " + newsHeadline.GetURL());
+        }
+        System.out.println();
+
+
+
+        // Date Histogram Aggregation
+        Aggregation agg1 = Aggregation.of(a -> a.dateHistogram(dha -> dha.field("date").calendarInterval(CalendarInterval.valueOf(String.valueOf(CalendarInterval.Day)))));
+        SearchResponse<?> dhAggregation = elcClient.search(s -> s
+                        .index(NEWS_HEADLINES_INDEX_NAME)
+                        .aggregations("articles_per_day", agg1),
+                NewsHeadline.class
+        );
+
+        logger.debug(String.valueOf(dhAggregation));
+        System.out.println();
+
+        // Date Range Aggregation
+        Aggregation agg2 = Aggregation.of(a -> a.dateRange(dha -> dha.field("date")
+                .ranges(dr -> dr
+                        .from(FieldDateMath.of(fdm -> fdm.expr("2024-01-01")))
+                        .to(FieldDateMath.of(fdm -> fdm.expr("2024-02-01"))))));
+        SearchResponse<?> drAggregation = elcClient.search(s -> s
+                        .index(NEWS_HEADLINES_INDEX_NAME)
+                        .aggregations("articles_in_range", agg2),
+                NewsHeadline.class
+        );
+
+        logger.debug(String.valueOf(drAggregation));
+        System.out.println();
+
+        // Histogram Aggregation
+        Aggregation agg3 = Aggregation.of(a -> a.histogram(dha -> dha.script(scr -> scr
+                        .inline(i -> i
+                                .source("doc['header'].value.length()")
+                                .lang("painless"))
+                ).interval(10.0)
+                ));
+        SearchResponse<?> hAggregation = elcClient.search(s -> s
+                        .index(NEWS_HEADLINES_INDEX_NAME)
+                        .aggregations("header_length_histogram", agg3),
+                NewsHeadline.class
+        );
+
+        logger.debug(String.valueOf(hAggregation));
+        System.out.println();
+
+        // Terms Aggregation
+        Aggregation agg4 = Aggregation.of(a -> a.terms(t -> t
+                .field("author")
+                )
+        );
+        SearchResponse<?> tAggregation = elcClient.search(s -> s
+                        .index(NEWS_HEADLINES_INDEX_NAME)
+                        .aggregations("popular_authors", agg4),
+                NewsHeadline.class
+        );
+
+        logger.debug(String.valueOf(tAggregation));
+        System.out.println();
+
+        // Filter Aggregation
+        Aggregation agg5_1 = Aggregation.of(a -> a
+                .avg(avg -> avg
+                        .script(scr -> scr
+                                .inline(i -> i
+                                        .source("doc['body'].value.length()")
+                                        .lang("painless"))
+                        )
+                )
+        );
+        Aggregation agg5 = Aggregation.of(a -> a
+                .filter(q -> q.term(t -> t
+                                .field("author")
+                                .value("crimea.mk.ru")
+                        )
+                )
+                .aggregations("avg_body_length", agg5_1)
+        );
+        SearchResponse<?> fAggregation = elcClient.search(s -> s
+                        .index(NEWS_HEADLINES_INDEX_NAME)
+                        .aggregations("filtered_body", agg5),
+                NewsHeadline.class
+        );
+
+        logger.debug(String.valueOf(fAggregation));
+        System.out.println();
+
+        // Logs Aggregation
+        Aggregation agg6 = Aggregation.of(a -> a.terms(t -> t
+                        .field("stream.keyword")
+                        .size(10)
+                )
+        );
+        SearchResponse<?> lAggregation = elcClient.search(s -> s
+                        .index(NEWS_HEADLINES_INDEX_NAME)
+                        .aggregations("streams", agg6)
+                        .size(0),
+                NewsHeadline.class
+        );
+
+        logger.debug(String.valueOf(lAggregation));
+        System.out.println();
     }
 
     private static void outputHits(List<Hit<NewsHeadline>> hits) {

@@ -118,7 +118,7 @@ POST /news_headlines/_search
       "date_range": {
         "field": "date",
         "ranges": [
-          {"from": "2022-01-01", "to": "2022-02-01"}
+          {"from": "2024-01-01", "to": "2024-02-01"}
         ]
       }
     }
