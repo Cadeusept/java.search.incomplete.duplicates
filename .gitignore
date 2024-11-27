@@ -37,6 +37,8 @@ build/
 ### Mac OS ###
 .DS_Store
 /deployment/rabbitmq/
+/deployment/elasticsearch-data/
+/deployment/kibana-data/
 /.idea/
 
 .env

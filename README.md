@@ -1,199 +1,84 @@
-# JAVA WEBSITE PARSER
+
+# JAVA INCOMPLETE DUPLICATES FINDER
+
 ## Stack
-- Java *21* (Jsoup *1.10.2* for parsing)
-- RabbitMQ *3.10.7*
-- Elasticsearch *7.17.19*
-- Kibana *7.17.19*
-- Logstash *7.17.19*
-- Filebeat *7.17.19*
-## Work algorithm
-### 1. "Link Catcher" service
-- Parsing website, catching links from base page
-- If already in elastic, continue
-- New links with news are being sent to RMQ url queue
-### 2. "Website Parser" service
-- Getting links from url queue
-- Check links into hashmap
-- If there is no link in hash map, save it and download *.html file
-- Earning info from website using css selectors
-- Mapping info inside entity named "NewsHeadline"
-- Sending entity to RMQ data queue
-### 3. "Elasticsearch Consumer" service
-- Creating index if not created
-- Getting links from data queue
-- If already in elastic, continue
-- Saving new data to elasticsearch
+- Java **21**
 
-## Example of work
-### 1. "Link Catcher" service and "Website Parser" service
-![Alt text](/img/1.png "Screenshot of url queue")
-### 2. "Website Parser" service and "Elasticsearch Consumer" service
-![Alt text](/img/2.png "Screenshot of data queue")
-### 3. Kibana dashboard screenshot
-![Alt text](/img/3.png "Screenshot of kibana dashboard")
-### 4. Kibana dashboard with filters screenshot
-![Alt text](/img/4.png "Screenshot of kibana dashboard with filters")
-### 5. Kibana dashboard with logs screenshot
-![Alt text](/img/5.png "Screenshot of kibana dashboard with logs")
+---
 
-## Queries and Aggregations
-### 1. OR Query
-```
-POST /news_headlines/_search
-{
-  "query": {
-    "bool": {
-      "should": [
-        {"match": {"author": "Денис"}},
-        {"match": {"body": "Симферополь"}}
-      ]
+## Work Algorithm of `DuplicateFinder` Class
+
+### 1. Download Texts from Files
+- Traverse the specified directory.
+- Filter files to include only `.txt` files.
+- Read each file’s content and save it with a relative path in a `HashMap`.
+
+---
+
+### 2. Texts Canonization
+- Convert all text to lowercase.
+- Normalize text to remove diacritical marks.
+- Strip all characters except letters, numbers, and spaces.
+- Trim and simplify excess whitespace.
+
+---
+
+### 3. Shingles Building
+- Split canonicalized text into word tokens.
+- Construct shingles (sequences of `k` words) from the tokens.
+- Save shingles in a `Set` to represent each file’s unique textual patterns.
+
+---
+
+### 4. Counting MinHashes (Using MurmurHash3)
+- Compute `n` hash values for each shingle using the MurmurHash3 algorithm.
+- Track the minimum hash value for each hash function across all shingles.
+- Store the resulting MinHash vector for each file.
+
+---
+
+### 5. Find Duplicates
+- Compare MinHash vectors between all pairs of files.
+- Calculate Jaccard similarity based on the percentage of matching hash values in the MinHash vectors.
+- Print similarity scores to identify potential duplicates.
+
+---
+
+### Example `Main` Method
+```java
+package DuplicateFinder;
+
+import java.io.IOException;
+
+public class Main {
+    public static void main(String[] args) throws IOException {
+        DuplicateFinder duplicateFinder = new DuplicateFinder();
+
+        // Step 1: Load texts from directory
+        String directoryPath = "./input";
+        duplicateFinder.loadTexts(directoryPath);
+
+        // Step 2: Canonicalize texts
+        duplicateFinder.canonicalizeTexts();
+
+        // Step 3: Build shingles
+        int shingleSize = 2; // Define size of shingles
+        duplicateFinder.buildShinglesForAllTexts(shingleSize);
+
+        // Step 4: Compute MinHashes
+        int hashFunctions = 100; // Number of hash functions
+        duplicateFinder.computeMinHashesForAllTexts(hashFunctions);
+
+        // Step 5: Find duplicates
+        duplicateFinder.findDuplicates();
     }
-  }
 }
 ```
 
-### AND Query
-```
-POST /news_headlines/_search
-{
-  "query": {
-    "bool": {
-      "must": [
-        {"match": {"author": "Денис"}},
-        {"match": {"body": "Симферополь"}}
-      ]
-    }
-  }
-}
-```
+---
 
-### Script Query
-```
-POST /news_headlines/_search
-{
-  "query": {
-    "script_score": {
-      "query": {"match_all": {}},
-      "script": {
-        "source": "doc['URL'].value.length()"
-      }
-    }
-  }
-}
-```
-
-### MultiGet Query
-```
-GET /news_headlines/_mget
-{
-  "docs": [
-    { "_id": "arr7Vo8B5aM0OFyPWyIm" },
-    { "_id": "V1q0WY8Bq03dI9uQAZuB" },
-    { "_id": "X7r7Vo8B5aM0OFyPSSL_" }
-  ]
-}
-```
-
-### Date Histogram Aggregation
-```
-POST /news_headlines/_search
-{
-  "aggs": {
-    "articles_per_day": {
-      "date_histogram": {
-        "field": "date",
-        "calendar_interval": "day"
-      }
-    }
-  }
-}
-```
-
-### Date Range Aggregation
-```
-POST /news_headlines/_search
-{
-  "aggs": {
-    "articles_in_range": {
-      "date_range": {
-        "field": "date",
-        "ranges": [
-          {"from": "2024-01-01", "to": "2024-02-01"}
-        ]
-      }
-    }
-  }
-}
-```
-
-### Histogram Aggregation
-```
-POST /news_headlines/_search
-{
-  "aggs": {
-    "header_length_histogram": {
-      "histogram": {
-        "script": {
-          "source": "doc['header'].value.length()",
-          "lang": "painless"
-        },
-        "interval": 10
-      }
-    }
-  }
-}
-```
-
-### Terms Aggregation
-```
-POST /news_headlines/_search
-{
-  "aggs": {
-    "popular_authors": {
-      "terms": {
-        "field": "author"
-      }
-    }
-  }
-}
-```
-
-### Filter Aggregation
-```
-POST /news_headlines/_search
-{
-  "aggs": {
-    "filtered_body": {
-      "filter": {
-        "term": {"author": "crimea.mk.ru"}
-      },
-      "aggs": {
-        "avg_body_length": {
-          "avg": {
-            "script": {
-              "source": "doc['body'].value.length()",
-              "lang": "painless"
-            }
-          }
-        }
-      }
-    }
-  }
-}
-```
-
-### Logs Aggregation
-```
-GET /logstash*/_search
-{
-  "size": 0, 
-  "aggs": {
-    "streams": {
-      "terms": {
-        "field": "stream.keyword",
-        "size": 10
-      }
-    }
-  }
-}
-```
+### Key Features
+- **Text Canonization** ensures noise-free comparisons.
+- **Shingling** breaks down text into manageable chunks, allowing for partial matching.
+- **MinHashing with MurmurHash3** efficiently calculates similarity while reducing dimensionality.
+- **Duplicate Detection** outputs similarity percentages between all file pairs.
