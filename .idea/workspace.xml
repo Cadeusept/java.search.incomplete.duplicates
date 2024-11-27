@@ -1,0 +1,392 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="eb6331d8-d743-4170-b4a4-2ba7a2547da3" name="Changes" comment="feat: added duplicates finder">
+      <change afterPath="$PROJECT_DIR$/input/file1.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/input/file2.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/input/file3.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/DuplicateFinder/DuplicateFinder.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/Entities/FileData.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.github/workflows/build.yml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deployment/Dockerfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/deployment/docker-compose.yml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/deployment/filebeat/filebeat.yml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/deployment/init/definitions.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/deployment/init/rabbitmq.conf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/deployment/logstash/config/logstash.yml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/deployment/logstash/pipeline/java_logs.conf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/deployment/maven_compile.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/img/1.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/img/2.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/img/3.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/img/4.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/img/5.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/entities/Link.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/entities/NewsHeadline.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/jobExecutor/JobExecutor.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/parser/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/DuplicateFinder/Main.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/parser/WebsiteParser.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/log4j2.xml" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="master" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="SET_USER_NAME_GLOBALLY" value="false" />
+    <option name="UPDATE_TYPE" value="REBASE" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 8
+}</component>
+  <component name="ProjectId" id="2doBzXBsZUEz0q1a6Uq6oucUCBj" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Application.DuplicateFinder.Main.executor": "Debug",
+    "Application.Main.executor": "Run",
+    "Maven. [clear].executor": "Run",
+    "Maven. [compile,exec:java...].executor": "Run",
+    "Maven.website-parser [clean,compile].executor": "Run",
+    "Maven.website-parser [clean,install].executor": "Run",
+    "Maven.website-parser [clean,main].executor": "Run",
+    "Maven.website-parser [clean,package].executor": "Run",
+    "Maven.website-parser [clean,test].executor": "Run",
+    "Maven.website-parser [clean,validate,compile...].executor": "Run",
+    "Maven.website-parser [clean].executor": "Run",
+    "Maven.website-parser [clear].executor": "Run",
+    "Maven.website-parser [compile,exec:java...].executor": "Run",
+    "Maven.website-parser [compile,exec:java].executor": "Run",
+    "Maven.website-parser [compile].executor": "Run",
+    "Maven.website-parser [install].executor": "Run",
+    "Maven.website-parser [package].executor": "Run",
+    "Maven.website-parser.executor": "Run",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "work__in__progress",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "/Users/cadeusept/Documents/Progs/Java/java.search.incomplete.duplicates",
+    "project.structure.last.edited": "Modules",
+    "project.structure.proportion": "0.0",
+    "project.structure.side.proportion": "0.0",
+    "settings.editor.selected.configurable": "reference.projectsettings.compiler.annotationProcessors"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/img" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/src/main/java/parser" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Application.DuplicateFinder.Main">
+    <configuration name="DuplicateFinder.Main" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="DuplicateFinder.Main" />
+      <module name="website-parser" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="DuplicateFinder.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Main" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="parser.Main" />
+      <module name="website-parser" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="DuplicateFinder.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Application.DuplicateFinder.Main" />
+        <item itemvalue="Application.Main" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="jdk-21.0.2-openjdk-21.0.2-4caba194b151-322ed176" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="eb6331d8-d743-4170-b4a4-2ba7a2547da3" name="Changes" comment="" />
+      <created>1710664816953</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1710664816953</updated>
+    </task>
+    <task id="LOCAL-00001" summary="initial commit">
+      <option name="closed" value="true" />
+      <created>1710665053606</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1710665053606</updated>
+    </task>
+    <task id="LOCAL-00002" summary="feat: added website parser and deployment files">
+      <option name="closed" value="true" />
+      <created>1710845640923</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1710845640923</updated>
+    </task>
+    <task id="LOCAL-00003" summary="feat: added website parser and deployment files">
+      <option name="closed" value="true" />
+      <created>1710857545101</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1710857545101</updated>
+    </task>
+    <task id="LOCAL-00004" summary="feat: added deployment">
+      <option name="closed" value="true" />
+      <created>1710964632895</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1710964632895</updated>
+    </task>
+    <task id="LOCAL-00005" summary="feat: added new queue">
+      <option name="closed" value="true" />
+      <created>1711031218082</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1711031218082</updated>
+    </task>
+    <task id="LOCAL-00006" summary="feat: added parsing &amp; elk producing template">
+      <option name="closed" value="true" />
+      <created>1711232906960</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1711232906960</updated>
+    </task>
+    <task id="LOCAL-00007" summary="feat: added parsing &amp; elk producing template">
+      <option name="closed" value="true" />
+      <created>1711315145711</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1711315145711</updated>
+    </task>
+    <task id="LOCAL-00008" summary="feat: added elasticsearch &amp; kibana deployment">
+      <option name="closed" value="true" />
+      <created>1711360698338</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1711360698338</updated>
+    </task>
+    <task id="LOCAL-00009" summary="feat: added elasticsearch client">
+      <option name="closed" value="true" />
+      <created>1712163235495</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1712163235495</updated>
+    </task>
+    <task id="LOCAL-00010" summary="feat: added elasticsearch consumer">
+      <option name="closed" value="true" />
+      <created>1712575701122</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1712575701122</updated>
+    </task>
+    <task id="LOCAL-00011" summary="feat: added elasticsearch+kibana deployment">
+      <option name="closed" value="true" />
+      <created>1712595707652</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1712595707652</updated>
+    </task>
+    <task id="LOCAL-00012" summary="feat: added readme and code improvements">
+      <option name="closed" value="true" />
+      <created>1712929777348</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1712929777348</updated>
+    </task>
+    <task id="LOCAL-00013" summary="fix: added search of added news">
+      <option name="closed" value="true" />
+      <created>1714661641291</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1714661641291</updated>
+    </task>
+    <task id="LOCAL-00014" summary="fix: added logging inside elastic">
+      <option name="closed" value="true" />
+      <created>1714683157078</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1714683157078</updated>
+    </task>
+    <task id="LOCAL-00015" summary="feat: added logging into elasticsearch">
+      <option name="closed" value="true" />
+      <created>1714848097763</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1714848097763</updated>
+    </task>
+    <task id="LOCAL-00016" summary="feat: added logging into elasticsearch&lt;-logstash&lt;-filebeat and dashboards">
+      <option name="closed" value="true" />
+      <created>1715034716130</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1715034716130</updated>
+    </task>
+    <task id="LOCAL-00017" summary="feat: added logging into elasticsearch&lt;-logstash&lt;-filebeat and dashboards">
+      <option name="closed" value="true" />
+      <created>1715034846192</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1715034846192</updated>
+    </task>
+    <task id="LOCAL-00018" summary="feat: added logging into elasticsearch&lt;-logstash&lt;-filebeat and dashboards">
+      <option name="closed" value="true" />
+      <created>1715034858455</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1715034858455</updated>
+    </task>
+    <task id="LOCAL-00019" summary="feat: added logging into elasticsearch&lt;-logstash&lt;-filebeat and dashboards">
+      <option name="closed" value="true" />
+      <created>1715034981824</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1715034981824</updated>
+    </task>
+    <task id="LOCAL-00020" summary="feat: added AND and OR searching">
+      <option name="closed" value="true" />
+      <created>1715117740712</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1715117740712</updated>
+    </task>
+    <task id="LOCAL-00021" summary="fix: fixed AND and OR searching">
+      <option name="closed" value="true" />
+      <created>1715152649406</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1715152649406</updated>
+    </task>
+    <task id="LOCAL-00022" summary="feat(draft): added multiGet and script queries">
+      <option name="closed" value="true" />
+      <created>1715202385631</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1715202385631</updated>
+    </task>
+    <task id="LOCAL-00023" summary="feat(draft): added multiGet and script queries">
+      <option name="closed" value="true" />
+      <created>1715202445721</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1715202445721</updated>
+    </task>
+    <task id="LOCAL-00024" summary="feat: added queries and aggregations inside readme">
+      <option name="closed" value="true" />
+      <created>1715340873096</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1715340873096</updated>
+    </task>
+    <option name="localTasksCounter" value="25" />
+    <servers />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="initial commit" />
+    <MESSAGE value="feat: added website parser and deployment files" />
+    <MESSAGE value="feat: added deployment" />
+    <MESSAGE value="feat: added new queue" />
+    <MESSAGE value="feat: added parsing &amp; elk producing template" />
+    <MESSAGE value="feat: added elasticsearch &amp; kibana deployment" />
+    <MESSAGE value="feat: added elasticsearch client" />
+    <MESSAGE value="feat: added elasticsearch consumer" />
+    <MESSAGE value="feat: added elasticsearch+kibana deployment" />
+    <MESSAGE value="feat: added readme and code improvements" />
+    <MESSAGE value="fix: added search of added news" />
+    <MESSAGE value="fix: added logging inside elastic" />
+    <MESSAGE value="feat: added logging into elasticsearch" />
+    <MESSAGE value="feat: added logging into elasticsearch&lt;-logstash&lt;-filebeat and dashboards" />
+    <MESSAGE value="feat: added AND and OR searching" />
+    <MESSAGE value="fix: fixed AND and OR searching" />
+    <MESSAGE value="feat(draft): added multiGet and script queries" />
+    <MESSAGE value="feat: added queries and aggregations inside readme" />
+    <MESSAGE value="feat: added duplicates finder" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: added duplicates finder" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <breakpoint enabled="true" type="java-exception">
+          <properties class="com.rabbitmq.client.AlreadyClosedException" package="com.rabbitmq.client" />
+          <option name="timeStamp" value="1" />
+        </breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>
